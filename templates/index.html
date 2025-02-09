@@ -1,0 +1,14 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+
+    <h1>index.html</h1>
+    <a>{{ my_dict.insert_something1 }}</a><br>
+    <a>{{ my_dict.insert_something2 }}</a><br>
+    {% for test_title in my_dict.test_titles %}
+    <a>{{ test_title }}</a><br>
+    {% endfor %}
+
+
+{% endblock %}
