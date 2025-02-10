@@ -11,7 +11,7 @@
         ],
         "profile_name": "default",
         "project_name": "zappa-webapp-te",
-        "runtime": "python3.10",
+        "runtime": "python3.9",
         "s3_bucket": "zappa-438y7gauk"
     }
 }

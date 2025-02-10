@@ -4,6 +4,7 @@ from flask_login import UserMixin, LoginManager, login_user, logout_user, login_
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from datetime import datetime
+import boto3
 
 app = Flask(__name__)
 
@@ -14,4 +15,18 @@ def index():
         'insert_something2': 'views.pyのinsert_something2部分です。',
         'test_titles': ['title1', 'title2', 'title3']
     }
-    return render_template('index.html', my_dict=my_dict)
+    dynamodb = boto3.resource('dynamodb')
+    table = dynamodb.Table('UserRecipe')
+    response = table.scan()
+    print("--------------------------------RESPONSE----------------",response)
+    return render_template('index.html', my_dict=my_dict,response=response)
+"""
+@app.route('/')
+def index():
+    dynamodb = boto3.resource('dynamodb')
+    table = dynamodb.Table('UserRecipe')
+    response = table.scan()
+    print(response)
+
+    return render_template('index.html')
+"""

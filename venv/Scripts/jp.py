@@ -1,4 +1,4 @@
-#!C:\Users\start\OneDrive\Desktop\zappa_webapp_test\venv\Scripts\python.exe
+#!C:\Users\GuestUser\Desktop\zappa_recipeapp\venv\Scripts\python.exe
 
 import sys
 import json
