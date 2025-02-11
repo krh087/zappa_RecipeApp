@@ -1,4 +1,4 @@
-#!C:\Users\GuestUser\Desktop\zappa_recipeapp\venv\Scripts\python.exe
+#!C:\Users\start\OneDrive\Desktop\zappa_project\zappa_RecipeApp\venv\Scripts\python.exe
 
 import argparse
 import json
