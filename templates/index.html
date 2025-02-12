@@ -1,16 +1,27 @@
 {% extends "layout.html" %}
 
 {% block content %}
+<h2>{{ username }}さん  こんにちは</h2>
 
+<a href="#" role="button">新規レシピ作成</a>
+<div class="container mt-4">
+    <h2>従業員一覧</h2>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">料理名</th>
+              <th scope="col">料理時間(分)</th>
+              <th scope="col">最終更新時間</th>
+            </tr>
+        </thead>
+        <tbody>
 
-    <h1>index.html</h1>
-    <a>{{ my_dict.insert_something1 }}</a><br>
-    <a>{{ my_dict.insert_something2 }}</a><br>
-    {% for test_title in my_dict.test_titles %}
-    <a>{{ test_title }}</a><br>
-    {% endfor %}
+        </tbody>
+    </table>
     <a>{{ response }}</a>
-    <br><a>{{ next_sequence }}</a>
+</div>
 
-
+<br><br>
+<a href="#" role="button">ログアウト</a>
 {% endblock %}

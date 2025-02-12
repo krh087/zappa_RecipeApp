@@ -5,12 +5,17 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from datetime import datetime
 import decimal
+import uuid
 
 import boto3
 from boto3.dynamodb.conditions import Key
 
 
+
 app = Flask(__name__)
+
+dynamodb = boto3.resource('dynamodb')
+table = dynamodb.Table('UserRecipe')
 
 
 @app.route('/')
@@ -20,8 +25,6 @@ def index():
         'insert_something2': 'views.pyのinsert_something2部分です。',
         'test_titles': ['title1', 'title2', 'title3']
     }
-    dynamodb = boto3.resource('dynamodb')
-    table = dynamodb.Table('UserRecipe')
 
     # Scan(DynamoDB Item 全件取得)
     #response = table.scan()
@@ -43,7 +46,68 @@ def index():
     )
     response = response['Items']
 
-    return render_template('index.html', my_dict=my_dict,response=response)
+    return render_template('index.html', response=response)
+
+
+@app.route('/login', methods=['POST','GET'])
+def login():
+    if request.method == 'POST':
+        input_email = request.form['email']
+        input_password = request.form['password']
+
+        gsi_response = table.query(
+            IndexName = 'email-index',
+            KeyConditionExpression = Key('email').eq(input_email)
+        )
+        # ログイン認証
+        if input_password == gsi_response['Items'][0]['password']:
+            username = gsi_response['Items'][0]['userName']
+            return render_template(
+                'index.html', username=username
+            )
+        else:
+            return render_template(
+            'login.html',
+        )
+    if request.method == 'GET':
+        return render_template(
+            'login.html',
+        )
+
+
+@app.route('/signup', methods=['POST','GET'])
+def signup():
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+
+        dynamodb = boto3.resource('dynamodb')
+        table = dynamodb.Table('UserRecipe')
+
+        unique_id = uuid.uuid4()
+        num_unique_id =  unique_id.int % (10**12)
+        now_time = datetime.now().isoformat()
+        
+        table.put_item(
+            Item={
+                'userId': 'USER#user' + str(num_unique_id),
+                'SK': 'PROFILE',
+                'userName': username,
+                'password': password,
+                'email': email,
+                'created_at': now_time,
+                'updated_at': now_time,
+            }
+        )
+        return render_template('login.html')
+    if request.method == 'GET':
+        return render_template(
+            'signup.html'
+        )
+
+
+
 
 
 # アトミックカウンター関数

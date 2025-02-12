@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h1>アカウントを作成する</h1>
+        <form method="post" action="{{ url_for('signup') }}">
+            <div>
+                <label for="username">ユーザー</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div>
+                <label for="email">E-mail</label>
+                <input type="text" id="email" name="email" required>
+            </div>
+            <div>
+                <label for="password">パスワード</label>
+                <input type="text" id="password" name="password" required>
+            </div>
+            <button type="submit">登録</button>
+            <a href="{{ url_for('login') }}" role="button">戻る</a>
+            
+        </form>
+{% endblock %}
