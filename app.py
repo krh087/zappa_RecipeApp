@@ -11,12 +11,11 @@ import boto3
 from boto3.dynamodb.conditions import Key
 
 
-
 app = Flask(__name__)
+app.config.from_object('config')
 
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table('UserRecipe')
-
 
 @app.route('/')
 def index():
@@ -82,16 +81,12 @@ def signup():
         email = request.form['email']
         password = request.form['password']
 
-        dynamodb = boto3.resource('dynamodb')
-        table = dynamodb.Table('UserRecipe')
-
         unique_id = uuid.uuid4()
-        num_unique_id =  unique_id.int % (10**12)
+        num_unique_userid =  unique_id.int % (10**12)
         now_time = datetime.now().isoformat()
-        
         table.put_item(
             Item={
-                'userId': 'USER#user' + str(num_unique_id),
+                'userId': 'USER#user' + str(num_unique_userid),
                 'SK': 'PROFILE',
                 'userName': username,
                 'password': password,
@@ -100,39 +95,63 @@ def signup():
                 'updated_at': now_time,
             }
         )
-        return render_template('login.html')
+        return render_template(
+            'login.html'
+        )
     if request.method == 'GET':
         return render_template(
             'signup.html'
         )
 
+@app.route('/add_recipe', methods=['GET', 'POST'])
+def add_recipe():
+    if request.method == 'GET':
+        return render_template('add_recipe.html')
+    if request.method == 'POST':
+        # 固定の入力欄の値を取得
+        title = request.form.get("title")
+        cook_time = request.form.get("cook_time")
+        memo = request.form.get("memo")
+        # 動的な入力欄の値(list型)を取得
+        ingredients = request.form.getlist("dynamic_ingredient")
+        quantities = request.form.getlist("dynamic_quantity")
+        instructions = request.form.getlist("dynamic_instruction")
+        # DB書込
+        unique_id = uuid.uuid4()
+        num_unique_recipeid =  unique_id.int % (10**12)
+        now_time = datetime.now().isoformat()
+        recipe_id = add_recipe('USER#user484824819085')
+        ingredient_quantity = []
+        for ingredient, quantity in zip(ingredients, quantities):
+            ingredient_quantity.append({ingredient: quantity})
+        table.put_item(
+            Item={
+                'userId': 'USER#user484824819085',
+                'SK': recipe_id,
+                'created_at': now_time,
+                'updated_at': now_time,
+                'title': title,
+                'ingredient': ingredient_quantity,
+                'cook_time': cook_time,
+                'memo': memo,
+                'step_img_path': ["a.img", "a.img"],
+            }
+        )
+       
+        return render_template(
+            'login.html'
+        )
 
-
-
-
-# アトミックカウンター関数
-def get_next_sequence(name='atomic_counter', table_name='sequence_table'):
-    # DynamoDBリソースの初期化
-    dynamodb = boto3.resource('dynamodb')
-    table = dynamodb.Table(table_name)
-    """
-    指定されたキーに対して連番を取得する関数
-    Args:
-        name (str): シーケンス名（例: 'atomic_counter'）
-        table_name(str): シーケンスを含むテーブル名 (例: 'sequence_table')
-    Returns:
-        int: 次のシーケンス番号
-    """
-    response = table.update_item(
-        Key={"name": name},
-        UpdateExpression="ADD #value :increment",
-        ExpressionAttributeNames={"#value": "value"},
-        ExpressionAttributeValues={":increment": decimal.Decimal(1)},
+def add_recipe(userId):
+    # ユーザーのカウンターをインクリメント
+    counter_response = table.update_item(
+        Key={
+            'userId': userId,
+            'SK': 'counter'
+            },
+        UpdateExpression="SET recipe_counter = if_not_exists(recipe_counter, :start) + :inc",
+        ExpressionAttributeValues={':start': 0, ':inc': 1},
         ReturnValues="UPDATED_NEW"
     )
-    return int(response['Attributes']['value'])
-@app.route('/add_atomicCounter')
-def add_atomicCounter():
-    # アトミックカウンター
-    next_sequence = get_next_sequence()
-    return None
+    new_recipe_id = f"RECIPE#recipe{int(counter_response['Attributes']['recipe_counter'])}"
+    return new_recipe_id
