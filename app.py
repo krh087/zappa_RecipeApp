@@ -13,6 +13,7 @@ import uuid
 
 import boto3
 from boto3.dynamodb.conditions import Key
+from botocore.exceptions import ClientError
 
 from config import config
 
@@ -23,19 +24,19 @@ app.config.from_object(config)
 app.secret_key = b'gqJpZCI1InFad3OizQ'
 dropzone = Dropzone(app)
 
-"""
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
-
-# アップロードフォルダが存在しない場合は作成
-if not os.path.exists(app.config['UPLOAD_FOLDER']):
-    os.makedirs(app.config['UPLOAD_FOLDER'])
-"""
+# S3クライアントの初期化
+s3 = boto3.client('s3')
+# S3バケット名
+BUCKET_NAME = 'myawsbucketrecipeimg2'
 
 # DynamoDB設定
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table('UserRecipe')
+
+
+# アップロードフォルダが存在しない場合は作成
+if not os.path.exists(app.config['UPLOAD_FOLDER']):
+    os.makedirs(app.config['UPLOAD_FOLDER'])
 
 # Flask-LoginManager初期設定
 login_manager = LoginManager(app)
@@ -265,7 +266,11 @@ def delete_recipe():
     )
     return redirect( url_for('index') )
 
-"""
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
 @app.route('/dragAndDrop', methods=['GET', 'POST'])
 @login_required
 def dragAndDrop():
@@ -283,15 +288,18 @@ def dragAndDrop():
             filename = secure_filename(file.filename)
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(file_path)
-            # ここでファイルを処理し、必要に応じてS3などに保存
+            recipe_filename = f"recipe/{filename}"
+            # ここでDynamoDBとS3に保存
             table.put_item(
                 Item={
                     'userId': current_user.id,
                     'SK': 'RECIPE#recipe8',
-                    'step_img_path': file_path
+                    'step_img_path': recipe_filename
                 }
             )
+            s3.upload_file(file_path, BUCKET_NAME, recipe_filename)
             # 処理後、一時ファイルを削除
             os.remove(file_path)
             return redirect( url_for('index') )
-"""
+
+

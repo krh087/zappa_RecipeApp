@@ -8,9 +8,7 @@
 </head>
 <body>
     <h1>ファイルをドラッグ＆ドロップしてアップロード</h1>
-    <a>aaaaaa</a><br>
     {{ dropzone.create(action='dragAndDrop') }}
-    <a>aaaaa</a><br>
     <button id="submit-all">送信</button>
     {{ dropzone.load_js() }}
     {{ dropzone.config(custom_init='dz = this;document.getElementById("submit-all").addEventListener("click", function handler(e) {dz.processQueue();});',

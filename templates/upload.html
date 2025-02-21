@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload to S3</title>
+</head>
+<body>
+    <h1>Upload File to S3</h1>
+    <form id="upload-form">
+        <input type="file" id="file-input" name="file">
+        <button type="submit">Upload</button>
+    </form>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('upload-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var formData = new FormData();
+            var fileInput = document.getElementById('file-input');
+            formData.append('file', fileInput.files[0]);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(result => {
+                document.getElementById('result').innerText = result;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('result').innerText = 'Upload failed: ' + error;
+            });
+        });
+    </script>
+</body>
+</html>
