@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ファイルアップロード</title>
+    {{ dropzone.load_css() }}
+    {{ dropzone.style('border: 2px dashed #0087F7; margin: 10%; min-height: 400px;') }}
+</head>
+<body>
+    <h1>ファイルをドラッグ＆ドロップしてアップロード</h1>
+    <a>aaaaaa</a><br>
+    {{ dropzone.create(action='dragAndDrop') }}
+    <a>aaaaa</a><br>
+    <button id="submit-all">送信</button>
+    {{ dropzone.load_js() }}
+    {{ dropzone.config(custom_init='dz = this;document.getElementById("submit-all").addEventListener("click", function handler(e) {dz.processQueue();});',
+                       custom_options='autoProcessQueue: false, addRemoveLinks: true,') }}
+    <script>
+        Dropzone.options.myDropzone = {
+            autoProcessQueue: false,
+            init: function() {
+                var submitButton = document.querySelector("#submit-all")
+                myDropzone = this;
+                submitButton.addEventListener("click", function() {
+                    myDropzone.processQueue();
+                });
+                this.on("complete", function() {
+                    if (this.getQueuedFiles().length == 0 && this.getUploadingFiles().length == 0) {
+                        var _this = this;
+                        _this.removeAllFiles();
+                    }
+                });
+            }
+        };
+    </script>
+</body>
+</html>

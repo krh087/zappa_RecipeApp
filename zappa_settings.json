@@ -12,6 +12,11 @@
         "profile_name": "default",
         "project_name": "zappa-webapp-te",
         "runtime": "python3.9",
-        "s3_bucket": "zappa-438y7gauk"
+        "s3_bucket": "zappa-438y7gauk",
+        "environment_variables": {
+            "S3_BUCKET": "myawsbucketrecipeimg2",
+            "S3_REGION": "ap-northeast-1"
+        },
+        "iam_policy": "arn:aws:iam::aws:policy/AmazonS3FullAccess"
     }
 }

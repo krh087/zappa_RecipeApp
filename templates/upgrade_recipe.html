@@ -1,0 +1,56 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h1>レシピの編集</h1>
+
+<form method="POST">
+    <div>
+        <label for="title">料理名</label>
+        <input type="text" name="title" value="{{ recipe['title'] }}">
+    </div>
+    <!-- 動的入力欄のコンテナ1 -->
+    <div id="dynamic-input-container">
+        <label for="ingredient">材料 / 分量:</label>
+        <br>
+        {% for dict_ingredient in recipe['ingredient'] %}
+            {% for ingredient, quantity in dict_ingredient.items() %}
+        <input type="text" name="dynamic_ingredient" value="{{ ingredient }}">
+        <input type="text" name="dynamic_quantity" value="{{ quantity }}">
+        <br>
+            {% endfor %}
+        {% endfor %}
+    </div>
+    <button type="button" onclick="addInputFields()">行追加</button>
+    <br><br>
+    <!-- 動的入力欄のコンテナ2 -->
+    <div id="dynamic-input-container2">
+        <label for="instructions">手順</label>
+        <br>
+        {% for step in recipe['step'] %}
+        <input type="text" name="dynamic_instruction" value="{{ step }}">
+        <br>
+        {% endfor %}
+    </div>
+    <button type="button" onclick="addInputFields2()">行追加</button>
+    <br><br>
+    <div>
+        <label for="cook_time">料理時間(分)</label>
+        <input type="text" name="cook_time" value="{{ recipe['cook_time'] }}">
+    </div>
+    <br>
+    <div>
+        <label for="memo">メモ・コツ</label>
+        <br>
+        <textarea id="memo" name="memo" rows="4">{{ recipe['memo'] }}</textarea>
+        <br>
+    </div>
+    <br>
+    <button id="register" type="submit">編集を完了する</button>
+</form>
+
+<br><br>
+<a href="{{ url_for('index') }}">戻る</a>
+
+<script src="static/addInputField.js" defer></script>
+{% endblock %}
+

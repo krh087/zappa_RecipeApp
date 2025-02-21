@@ -2,10 +2,14 @@
 
 {% block content %}
 <h2>{{ username }}さん  こんにちは</h2>
+<a>current_user.id : {{ current_user.id }}</a><br>
+{% for recipe in recipes%}
+<a>[recipe]{{ recipe }}</a><br>
+{% endfor %}
 
-<a href="#" role="button">新規レシピ作成</a>
+<a href="{{ url_for('add_recipe') }}" role="button">新規レシピ作成</a>
 <div class="container mt-4">
-    <h2>従業員一覧</h2>
+    <h2>レシピ一覧</h2>
     <table class="table table-striped">
         <thead>
             <tr>
@@ -16,12 +20,17 @@
             </tr>
         </thead>
         <tbody>
-
-        </tbody>
+            {% for i, recipe in enumerate(recipes, 1) %}
+            <tr>
+              <th scope="row">{{ i }}</th>
+              <td><a href="{{ url_for('recipe_detail', recipe_id=recipe['SK']) }}">{{ recipe['title'] }}</a></td>
+              <td>{{ recipe['cook_time'] }}</td>
+              <td>{{ recipe['updated_at'] }}</td>
+            </tr>
+            {% endfor %}
     </table>
-    <a>{{ response }}</a>
 </div>
-
+<a href="{{ url_for('dragAndDrop') }}" role="button">DragAndDrop</a><br>
 <br><br>
-<a href="#" role="button">ログアウト</a>
+<a href="{{ url_for('logout') }}" role="button">ログアウト</a>
 {% endblock %}

@@ -1,0 +1,52 @@
+{% extends "layout.html" %}
+
+{% block content %}
+  <div class="container">
+    <a href="{{ url_for('index') }}" class="btn btn-primary mb-3">戻る</a>
+    <h2 class="text-center">レシピ詳細</h2>
+    <div class="main-container">
+        <div class="title">
+          <h5>料理名：</h5>
+          <div class="title-content"><p>{{ recipe['title'] }} {{ recipe['step_photo_path'] }}</p></div>
+        </div>
+        <div class="ingredient-quantity">
+          <table>
+          <thead>
+            <tr>
+              <th scope="col">材料</th>
+              <th scope="col">分量</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for dict_ingredient in recipe['ingredient'] %}
+            {% for ingredient, quantity in dict_ingredient.items() %}
+            <tr>
+              <td>{{ ingredient }}</td>
+              <td>{{ quantity }}</td>
+            </tr>
+            {% endfor %}
+            {% endfor %}
+          </tbody>
+          </table>
+        </div>
+        <div class="step">
+          <h5>手順：</h5>
+          <div class="step-content">
+            {% for i, step in enumerate(recipe['step'], 1) %}
+            <div><a>{{ i }}. {{ step }}</a></div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="memo">
+          <h5>メモ・コツ：</h5>
+          <div><p>{{ recipe['memo'] }}</p></div>
+        <div class="row border p-2 mb-2">
+          <div class="col-sm-3"><h5>最終更新日：</h5>
+          <p>{{ recipe['updated_at'] }}</p>
+          </div>
+        </div>
+        <a href="{{ url_for('upgrade_recipe', recipe_id=recipe['SK']) }}" class="btn btn-primary mb-3 mr-2">編集する</a>
+        <a href="{{ url_for('delete_recipe', recipe_id=recipe['SK']) }}" class="btn btn-danger mb-3">削除する</a>
+    </div>
+  </div>
+{% endblock %}
