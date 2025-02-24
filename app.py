@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template, request, redirect, url_for, session
+from flask import Flask, jsonify, render_template, request, redirect, url_for, session, flash
 from flask_login import UserMixin, LoginManager, login_user, logout_user, login_required, current_user
 from flask_dropzone import Dropzone
 
@@ -8,6 +8,7 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 import decimal
 import os
+import pytz
 import tempfile
 import uuid
 
@@ -28,9 +29,11 @@ dropzone = Dropzone(app)
 s3 = boto3.client('s3')
 # S3バケット名
 BUCKET_NAME = 'myawsbucketrecipeimg2'
+# Region
+S3_REGION = 'ap-northeast-1'
 
 # DynamoDB設定
-dynamodb = boto3.resource('dynamodb')
+dynamodb = boto3.resource('dynamodb', region_name='ap-northeast-1')
 table = dynamodb.Table('UserRecipe')
 
 
@@ -113,7 +116,7 @@ def signup():
 
         unique_id = uuid.uuid4()
         num_unique_userid =  unique_id.int % (10**12)
-        now_time = datetime.now().isoformat()
+        now_time = datetime.now(pytz.timezone('Asia/Tokyo')).isoformat()
         table.put_item(
             Item={
                 'userId': 'USER#user' + str(num_unique_userid),
@@ -132,7 +135,7 @@ def signup():
         return render_template(
             'signup.html'
         )
-
+"""
 @app.route('/add_recipe', methods=['GET', 'POST'])
 @login_required
 def add_recipe():
@@ -140,6 +143,7 @@ def add_recipe():
         return render_template('add_recipe.html')
     if request.method == 'POST':
         # 固定の入力欄の値を取得
+        print(f"title:{title}")
         title = request.form.get("title")
         cook_time = request.form.get("cook_time")
         memo = request.form.get("memo")
@@ -155,6 +159,44 @@ def add_recipe():
         ingredient_quantity = []
         for ingredient, quantity in zip(ingredients, quantities):
             ingredient_quantity.append({ingredient: quantity})
+        table.put_item(
+            Item={
+                'userId': current_user.id,
+                'SK': recipe_id,
+                'created_at': now_time,
+                'updated_at': now_time,
+                'title': title,
+                'ingredient': ingredient_quantity,
+                'step': instructions,
+                'cook_time': cook_time,
+                'memo': memo,
+                'step_img_path': "recipe_filename",
+            }
+        )
+        return redirect( url_for('index') )
+"""
+@app.route('/add_recipe', methods=['GET', 'POST'])
+@login_required
+def add_recipe():
+    if request.method == 'GET':
+        return render_template('add_recipe.html')
+    if request.method == 'POST':
+        # リクエスト値を取得
+        title = request.form.get("title")
+        cook_time = request.form.get("cook_time")
+        memo = request.form.get("memo")
+        # list型リクエスト値を取得
+        ingredients = request.form.getlist("dynamic_ingredient")
+        quantities = request.form.getlist("dynamic_quantity")
+        instructions = request.form.getlist("dynamic_instruction")
+        unique_id = uuid.uuid4()
+        num_unique_recipeid =  unique_id.int % (10**12)
+        now_time = datetime.now(pytz.timezone('Asia/Tokyo')).isoformat()
+        recipe_id = add_recipeCounter(current_user.id)
+        ingredient_quantity = []
+        for ingredient, quantity in zip(ingredients, quantities):
+            ingredient_quantity.append({ingredient: quantity})
+        # DynamoDB書込
         table.put_item(
             Item={
                 'userId': current_user.id,
@@ -236,7 +278,7 @@ def upgrade_recipe():
         # DB読み込み
 
         # DB書込
-        now_time = datetime.now().isoformat()
+        now_time = datetime.now(pytz.timezone('Asia/Tokyo')).isoformat()
         ingredient_quantity = []
         for ingredient, quantity in zip(ingredients, quantities):
             ingredient_quantity.append({ingredient: quantity})
@@ -271,35 +313,57 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
-@app.route('/dragAndDrop', methods=['GET', 'POST'])
-@login_required
+
+@app.route("/dragAndDrop", methods=["GET", "POST"])
 def dragAndDrop():
-    if request.method == 'GET':
-        return render_template(
-            'dragAndDrop.html',
+    if request.method == "POST":
+        title = request.form.get("title")
+        description = request.form.get("description")
+        file = request.files.get("file")
+
+        if not title:
+            return "Title is required!"
+        if not file:
+            return "No file uploaded!"
+
+        filename = secure_filename(file.filename)
+        s3_filename = f"recipe/{current_user.id}/{filename}"
+
+        # S3 にアップロード
+        s3.upload_fileobj(file, BUCKET_NAME, s3_filename)
+        file_url = f"https://{BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{s3_filename}"
+        print(f'filename : {filename}')
+        print(f'file_url : {file_url }')
+
+        # リクエスト値を取得
+        title = request.form.get("title")
+        cook_time = request.form.get("cook_time")
+        memo = request.form.get("memo")
+        # list型リクエスト値を取得
+        ingredients = request.form.getlist("dynamic_ingredient")
+        quantities = request.form.getlist("dynamic_quantity")
+        instructions = request.form.getlist("dynamic_instruction")
+
+        now_time = datetime.now().isoformat()
+        recipe_id = add_recipeCounter(current_user.id)
+        ingredient_quantity = []
+        for ingredient, quantity in zip(ingredients, quantities):
+            ingredient_quantity.append({ingredient: quantity})
+        # DynamoDB書込
+        table.put_item(
+            Item={
+                'userId': current_user.id,
+                'SK': recipe_id,
+                'created_at': now_time,
+                'updated_at': now_time,
+                'title': title,
+                'ingredient': ingredient_quantity,
+                'step': instructions,
+                'cook_time': cook_time,
+                'memo': memo,
+                'recipe_img_path': s3_filename,
+            }
         )
-    if request.method == 'POST':
-        if 'file' not in request.files:
-            return redirect(request.url)
-        file = request.files['file']
-        if file.filename == '':
-            return redirect(request.url)
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(file_path)
-            recipe_filename = f"recipe/{filename}"
-            # ここでDynamoDBとS3に保存
-            table.put_item(
-                Item={
-                    'userId': current_user.id,
-                    'SK': 'RECIPE#recipe8',
-                    'step_img_path': recipe_filename
-                }
-            )
-            s3.upload_file(file_path, BUCKET_NAME, recipe_filename)
-            # 処理後、一時ファイルを削除
-            os.remove(file_path)
-            return redirect( url_for('index') )
+        return f"レシピの追加完了しました！ <a href='{url_for('index')}'>HOMEに戻る</a>"
 
-
+    return render_template('dragAndDrop.html')

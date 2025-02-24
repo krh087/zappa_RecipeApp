@@ -1,35 +1,49 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <title>ファイルアップロード</title>
-    {{ dropzone.load_css() }}
-    {{ dropzone.style('border: 2px dashed #0087F7; margin: 10%; min-height: 400px;') }}
-</head>
-<body>
-    <h1>ファイルをドラッグ＆ドロップしてアップロード</h1>
-    {{ dropzone.create(action='dragAndDrop') }}
-    <button id="submit-all">送信</button>
-    {{ dropzone.load_js() }}
-    {{ dropzone.config(custom_init='dz = this;document.getElementById("submit-all").addEventListener("click", function handler(e) {dz.processQueue();});',
-                       custom_options='autoProcessQueue: false, addRemoveLinks: true,') }}
-    <script>
-        Dropzone.options.myDropzone = {
-            autoProcessQueue: false,
-            init: function() {
-                var submitButton = document.querySelector("#submit-all")
-                myDropzone = this;
-                submitButton.addEventListener("click", function() {
-                    myDropzone.processQueue();
-                });
-                this.on("complete", function() {
-                    if (this.getQueuedFiles().length == 0 && this.getUploadingFiles().length == 0) {
-                        var _this = this;
-                        _this.removeAllFiles();
-                    }
-                });
-            }
-        };
-    </script>
-</body>
-</html>
+<script src="static/addInputField.js" defer></script>
+{% extends "layout.html" %}
+{% block content %}
+<h1>新規レシピ</h1>
+<form method="POST" enctype="multipart/form-data">
+    <div>
+        <label for="title">料理名</label>
+        <input type="text" name="title">
+    </div>
+    <div>
+    レシピ写真選択  <input type="file" name="file" required><br>
+    </div>
+    <!-- 動的入力欄のコンテナ1 -->
+    <div id="dynamic-input-container">
+        <label for="ingredient">材料 / 分量:</label>
+        <br>
+        <input type="text" name="dynamic_ingredient" placeholder="（例）パスタ">
+        <input type="text" name="dynamic_quantity" placeholder="（例）100g">
+        <br>
+    </div>
+    <button type="button" onclick="addInputFields()">行追加</button>
+    <br><br>
+    <!-- 動的入力欄のコンテナ2 -->
+    <div id="dynamic-input-container2">
+        <label for="instructions">手順</label>
+        <br>
+        <input type="text" name="dynamic_instruction" placeholder="(例)にんにくを刻み、オイルとにんにくを弱火で炒める">
+        <br>
+    </div>
+    <button type="button" onclick="addInputFields2()">行追加</button>
+    <br><br>
+    <div>
+        <label for="cook_time">料理時間(分)</label>
+        <input type="text" name="cook_time">
+    </div>
+    <br>
+    <div>
+        <label for="memo">メモ・コツ</label>
+        <br>
+        <textarea id="memo" name="memo" rows="4"></textarea>
+        <br>
+    </div>
+    <br>
+    <button id="register" type="submit">レシピ追加する</button>
+</form>
+
+<br><br>
+<a href="{{ url_for('index') }}">戻る</a>
+{% endblock %}
