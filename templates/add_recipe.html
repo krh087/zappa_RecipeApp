@@ -1,13 +1,17 @@
 <script src="static/addInputField.js" defer></script>
 {% extends "layout.html" %}
-
 {% block content %}
 <h1>新規レシピ</h1>
-
-<form method="POST">
+<form method="POST" enctype="multipart/form-data">
     <div>
         <label for="title">料理名</label>
         <input type="text" name="title">
+    </div>
+    <div>
+    レシピ写真選択  <input type="file" name="file" id="fileInput"><br>
+    </div>
+    <div>
+        <img id="preview" src="" alt="画像プレビュー" style="max-width: 300px; display: none;">
     </div>
     <!-- 動的入力欄のコンテナ1 -->
     <div id="dynamic-input-container">
@@ -46,4 +50,18 @@
 <br><br>
 <a href="{{ url_for('index') }}">戻る</a>
 
+<script>
+    document.getElementById("fileInput").addEventListener("change", function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById("preview");
+                img.src = e.target.result;
+                img.style.display = "block";
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
 {% endblock %}

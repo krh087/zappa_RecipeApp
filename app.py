@@ -28,7 +28,7 @@ dropzone = Dropzone(app)
 # S3クライアントの初期化
 s3 = boto3.client('s3')
 # S3バケット名
-BUCKET_NAME = 'myawsbucketrecipeimg2'
+S3_BUCKET = 'myawsbucketrecipeimg2'
 # Region
 S3_REGION = 'ap-northeast-1'
 
@@ -116,7 +116,7 @@ def signup():
 
         unique_id = uuid.uuid4()
         num_unique_userid =  unique_id.int % (10**12)
-        now_time = datetime.now(pytz.timezone('Asia/Tokyo')).isoformat()
+        now_time = datetime.now().isoformat()
         table.put_item(
             Item={
                 'userId': 'USER#user' + str(num_unique_userid),
@@ -135,205 +135,25 @@ def signup():
         return render_template(
             'signup.html'
         )
-"""
-@app.route('/add_recipe', methods=['GET', 'POST'])
-@login_required
-def add_recipe():
-    if request.method == 'GET':
-        return render_template('add_recipe.html')
-    if request.method == 'POST':
-        # 固定の入力欄の値を取得
-        print(f"title:{title}")
-        title = request.form.get("title")
-        cook_time = request.form.get("cook_time")
-        memo = request.form.get("memo")
-        # 動的な入力欄の値(list型)を取得
-        ingredients = request.form.getlist("dynamic_ingredient")
-        quantities = request.form.getlist("dynamic_quantity")
-        instructions = request.form.getlist("dynamic_instruction")
-        # DB書込
-        unique_id = uuid.uuid4()
-        num_unique_recipeid =  unique_id.int % (10**12)
-        now_time = datetime.now().isoformat()
-        recipe_id = add_recipeCounter(current_user.id)
-        ingredient_quantity = []
-        for ingredient, quantity in zip(ingredients, quantities):
-            ingredient_quantity.append({ingredient: quantity})
-        table.put_item(
-            Item={
-                'userId': current_user.id,
-                'SK': recipe_id,
-                'created_at': now_time,
-                'updated_at': now_time,
-                'title': title,
-                'ingredient': ingredient_quantity,
-                'step': instructions,
-                'cook_time': cook_time,
-                'memo': memo,
-                'step_img_path': "recipe_filename",
-            }
-        )
-        return redirect( url_for('index') )
-"""
-@app.route('/add_recipe', methods=['GET', 'POST'])
-@login_required
-def add_recipe():
-    if request.method == 'GET':
-        return render_template('add_recipe.html')
-    if request.method == 'POST':
-        # リクエスト値を取得
-        title = request.form.get("title")
-        cook_time = request.form.get("cook_time")
-        memo = request.form.get("memo")
-        # list型リクエスト値を取得
-        ingredients = request.form.getlist("dynamic_ingredient")
-        quantities = request.form.getlist("dynamic_quantity")
-        instructions = request.form.getlist("dynamic_instruction")
-        unique_id = uuid.uuid4()
-        num_unique_recipeid =  unique_id.int % (10**12)
-        now_time = datetime.now(pytz.timezone('Asia/Tokyo')).isoformat()
-        recipe_id = add_recipeCounter(current_user.id)
-        ingredient_quantity = []
-        for ingredient, quantity in zip(ingredients, quantities):
-            ingredient_quantity.append({ingredient: quantity})
-        # DynamoDB書込
-        table.put_item(
-            Item={
-                'userId': current_user.id,
-                'SK': recipe_id,
-                'created_at': now_time,
-                'updated_at': now_time,
-                'title': title,
-                'ingredient': ingredient_quantity,
-                'step': instructions,
-                'cook_time': cook_time,
-                'memo': memo,
-                'step_img_path': ["a.img", "a.img"],
-            }
-        )
-       
-        return redirect( url_for('index') )
-
-def add_recipeCounter(userId):
-    """
-    指定された userId に対応するレシピカウンターをインクリメントし、
-    新しいレシピ ID を返す
-    """
-    counter_response = table.update_item(
-        Key={
-            'userId': userId,
-            'SK': 'counter'
-        },
-        UpdateExpression="SET recipe_counter = if_not_exists(recipe_counter, :start) + :inc",
-        ExpressionAttributeValues={':start': 0, ':inc': 1},
-        ReturnValues="UPDATED_NEW"
-    )
-    new_counter = counter_response.get('Attributes', {}).get('recipe_counter', 0)
-    # レシピIDを作成
-    new_recipe_id = f"RECIPE#recipe{int(new_counter)}"
-    return new_recipe_id
-
-@app.route('/recipe_detail/<string:recipe_id>')
-@login_required
-def recipe_detail(recipe_id):
-    response = table.get_item(
-        Key={
-            'userId': current_user.id,
-            'SK': recipe_id,
-        }
-    )
-    recipe = response['Item']
-    dt = datetime.strptime(recipe['updated_at'], "%Y-%m-%dT%H:%M:%S.%f")
-    recipe['updated_at'] = dt.strftime("%Y-%m-%d %H:%M")
-    return render_template(
-        'recipe_detail.html', recipe=recipe, enumerate=enumerate,
-    )
-
-@app.route('/upgrade_recipe', methods=['GET', 'POST'])
-@login_required
-def upgrade_recipe():
-    if request.method == 'GET':
-        # クエリパラメータにより変数を受け取る
-        recipe_id = request.args.get('recipe_id')
-        response = table.get_item(
-            Key={
-                'userId': current_user.id,
-                'SK': recipe_id,
-            }
-        )
-        recipe = response['Item']
-        return render_template(
-            'upgrade_recipe.html',recipe=recipe
-        )
-    if request.method == 'POST':
-        recipe_id = request.args.get('recipe_id')
-        # 固定の入力欄の値を取得
-        title = request.form.get("title")
-        cook_time = request.form.get("cook_time")
-        memo = request.form.get("memo")
-        # 動的な入力欄の値(list型)を取得
-        ingredients = request.form.getlist("dynamic_ingredient")
-        quantities = request.form.getlist("dynamic_quantity")
-        instructions = request.form.getlist("dynamic_instruction")
-        # DB読み込み
-
-        # DB書込
-        now_time = datetime.now(pytz.timezone('Asia/Tokyo')).isoformat()
-        ingredient_quantity = []
-        for ingredient, quantity in zip(ingredients, quantities):
-            ingredient_quantity.append({ingredient: quantity})
-        table.put_item(
-            Item={
-                'userId': current_user.id,
-                'SK': recipe_id,
-                'created_at': now_time,
-                'updated_at': now_time,
-                'title': title,
-                'ingredient': ingredient_quantity,
-                'step': instructions,
-                'cook_time': cook_time,
-                'memo': memo,
-                'step_img_path': ["a.img", "a.img"],
-            }
-        )
-        return redirect( url_for('index') )
-
-@app.route('/delete_recipe')
-@login_required
-def delete_recipe():
-    recipe_id = request.args.get('recipe_id')
-    table.delete_item(
-        Key={'userId': current_user.id,
-             'SK': recipe_id,}
-    )
-    return redirect( url_for('index') )
-
 
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
-
-@app.route("/dragAndDrop", methods=["GET", "POST"])
-def dragAndDrop():
+@app.route("/add_recipe", methods=["GET", "POST"])
+@login_required
+def add_recipe():
     if request.method == "POST":
         title = request.form.get("title")
         description = request.form.get("description")
         file = request.files.get("file")
 
-        if not title:
-            return "Title is required!"
-        if not file:
-            return "No file uploaded!"
-
         filename = secure_filename(file.filename)
         s3_filename = f"recipe/{current_user.id}/{filename}"
 
         # S3 にアップロード
-        s3.upload_fileobj(file, BUCKET_NAME, s3_filename)
-        file_url = f"https://{BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{s3_filename}"
-        print(f'filename : {filename}')
-        print(f'file_url : {file_url }')
+        s3.upload_fileobj(file, S3_BUCKET, s3_filename)
+        file_url = f"https://{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/{s3_filename}"
 
         # リクエスト値を取得
         title = request.form.get("title")
@@ -366,4 +186,130 @@ def dragAndDrop():
         )
         return f"レシピの追加完了しました！ <a href='{url_for('index')}'>HOMEに戻る</a>"
 
-    return render_template('dragAndDrop.html')
+    return render_template('add_recipe.html')
+
+def add_recipeCounter(userId):
+    """
+    指定された userId に対応するレシピカウンターをインクリメントし、
+    新しいレシピ ID を返す
+    """
+    counter_response = table.update_item(
+        Key={
+            'userId': userId,
+            'SK': 'counter'
+        },
+        UpdateExpression="SET recipe_counter = if_not_exists(recipe_counter, :start) + :inc",
+        ExpressionAttributeValues={':start': 0, ':inc': 1},
+        ReturnValues="UPDATED_NEW"
+    )
+    new_counter = counter_response.get('Attributes', {}).get('recipe_counter', 0)
+    # レシピIDを作成
+    new_recipe_id = f"RECIPE#recipe{int(new_counter)}"
+    return new_recipe_id
+
+@app.route('/recipe_detail/<string:recipe_id>')
+@login_required
+def recipe_detail(recipe_id):
+    # DynamoDB読込
+    db_response = table.get_item(
+        Key={
+            'userId': current_user.id,
+            'SK': recipe_id,
+        }
+    )
+    recipe = db_response['Item']
+    dt = datetime.strptime(recipe['updated_at'], "%Y-%m-%dT%H:%M:%S.%f")
+    recipe['updated_at'] = dt.strftime("%Y-%m-%d %H:%M")
+    # S3画像ファイルパス
+    recipe_img_path = recipe['recipe_img_path']
+    # S3署名付きURLを発行（有効期限:3600秒 = 1時間）
+    signed_url = s3.generate_presigned_url(
+        'get_object',
+        Params={'Bucket': S3_BUCKET, 'Key': recipe_img_path},
+        ExpiresIn=3600
+    )
+    return render_template(
+        'recipe_detail.html', recipe=recipe, enumerate=enumerate, signed_url=signed_url,
+    )
+
+@app.route('/upgrade_recipe', methods=['GET', 'POST'])
+@login_required
+def upgrade_recipe():
+    if request.method == 'GET':
+        # クエリパラメータにより変数(recipe_id)を受け取る
+        recipe_id = request.args.get('recipe_id')
+        # DynamoDB読込
+        db_response = table.get_item(
+            Key={
+                'userId': current_user.id,
+                'SK': recipe_id,
+            }
+        )
+        recipe = db_response['Item']
+        # S3画像ファイルパス
+        recipe_img_path = recipe['recipe_img_path']
+        # S3署名付きURLを発行（有効期限:3600秒 = 1時間）
+        signed_url = s3.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': S3_BUCKET, 'Key': recipe_img_path},
+            ExpiresIn=3600
+        )
+        return render_template(
+            'upgrade_recipe.html',recipe=recipe, signed_url=signed_url,
+        )
+    if request.method == 'POST':
+        recipe_id = request.args.get('recipe_id')
+        # 固定の入力欄の値を取得
+        title = request.form.get("title")
+        cook_time = request.form.get("cook_time")
+        memo = request.form.get("memo")
+        # 動的な入力欄の値(list型)を取得
+        ingredients = request.form.getlist("dynamic_ingredient")
+        quantities = request.form.getlist("dynamic_quantity")
+        instructions = request.form.getlist("dynamic_instruction")
+        # 画像更新の有無
+        file = request.files.get("file")
+        if not file:
+            pass
+        # DB書込
+        now_time = datetime.now().isoformat()
+        ingredient_quantity = []
+        for ingredient, quantity in zip(ingredients, quantities):
+            ingredient_quantity.append({ingredient: quantity})
+        table.put_item(
+            Item={
+                'userId': current_user.id,
+                'SK': recipe_id,
+                'created_at': now_time,
+                'updated_at': now_time,
+                'title': title,
+                'ingredient': ingredient_quantity,
+                'step': instructions,
+                'cook_time': cook_time,
+                'memo': memo,
+                'step_img_path': ["a.img", "a.img"],
+            }
+        )
+        return redirect( url_for('index') )
+
+@app.route('/delete_recipe')
+@login_required
+def delete_recipe():
+    recipe_id = request.args.get('recipe_id')
+    # DynamoDBからレシピ読込, S3画像ファイルパスを取得
+    db_response = table.get_item(
+        Key={
+            'userId': current_user.id,
+            'SK': recipe_id,
+        }
+    )
+    recipe = db_response['Item']
+    recipe_img_path = recipe['recipe_img_path']
+    # DynamoDBからレシピ削除
+    table.delete_item(
+        Key={'userId': current_user.id,
+             'SK': recipe_id,}
+    )
+    # S3から画像削除
+    s3.delete_object(Bucket=S3_BUCKET, Key=recipe_img_path)
+    return redirect( url_for('index') )

@@ -8,6 +8,13 @@
         <label for="title">料理名</label>
         <input type="text" name="title" value="{{ recipe['title'] }}">
     </div>
+    <div>
+        <img id="oldImage" src="{{ signed_url }}" alt="S3 Image" style="max-width: 300px;">
+        <img id="newImage" style="max-width: 300px; display: none;">
+    </div>
+    <div>
+        レシピ写真選択  <input type="file" id="fileInput"><br>
+    </div>
     <!-- 動的入力欄のコンテナ1 -->
     <div id="dynamic-input-container">
         <label for="ingredient">材料 / 分量:</label>
@@ -52,5 +59,19 @@
 <a href="{{ url_for('index') }}">戻る</a>
 
 <script src="static/addInputField.js" defer></script>
+<script>
+    document.getElementById('fileInput').addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('newImage').src = e.target.result;
+          document.getElementById('newImage').style.display = 'block';
+          document.getElementById('oldImage').style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  </script>
 {% endblock %}
 

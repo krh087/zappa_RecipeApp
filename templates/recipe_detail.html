@@ -9,6 +9,9 @@
           <h5>料理名：</h5>
           <div class="title-content"><p>{{ recipe['title'] }} {{ recipe['step_photo_path'] }}</p></div>
         </div>
+        <div>
+          <img src="{{ signed_url }}" alt="S3 Image" style="max-width: 300px;">
+        </div>
         <div class="ingredient-quantity">
           <table>
           <thead>
@@ -46,7 +49,16 @@
           </div>
         </div>
         <a href="{{ url_for('upgrade_recipe', recipe_id=recipe['SK']) }}" class="btn btn-primary mb-3 mr-2">編集する</a>
-        <a href="{{ url_for('delete_recipe', recipe_id=recipe['SK']) }}" class="btn btn-danger mb-3">削除する</a>
+        <a href="{{ url_for('delete_recipe', recipe_id=recipe['SK']) }}" class="btn btn-danger mb-3" onclick="return confirmDelete(event, this.href);">削除する</a>
     </div>
   </div>
+<script>
+    function confirmDelete(event, url) {
+        if (confirm("本当に削除しますか？")) {
+            window.location.href = url;  // OKなら削除リンクへ
+        } else {
+            event.preventDefault();  // キャンセルなら処理中断
+        }
+    }
+</script>
 {% endblock %}
