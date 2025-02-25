@@ -9,7 +9,9 @@
         <input type="text" name="title" value="{{ recipe['title'] }}">
     </div>
     <div>
+        {% if signed_url %}
         <img id="oldImage" src="{{ signed_url }}" alt="S3 Image" style="max-width: 300px;">
+        {% endif %}
         <img id="newImage" style="max-width: 300px; display: none;">
     </div>
     <div>

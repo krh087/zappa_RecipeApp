@@ -144,17 +144,13 @@ def allowed_file(filename):
 @login_required
 def add_recipe():
     if request.method == "POST":
-        title = request.form.get("title")
-        description = request.form.get("description")
+        # 画像を取得し、S3にアップロード
         file = request.files.get("file")
-
-        filename = secure_filename(file.filename)
-        s3_filename = f"recipe/{current_user.id}/{filename}"
-
-        # S3 にアップロード
-        s3.upload_fileobj(file, S3_BUCKET, s3_filename)
-        file_url = f"https://{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/{s3_filename}"
-
+        s3_filename = None
+        if file:
+            filename = secure_filename(file.filename)
+            s3_filename = f"recipe/{current_user.id}/{filename}"
+            s3.upload_fileobj(file, S3_BUCKET, s3_filename)
         # リクエスト値を取得
         title = request.form.get("title")
         cook_time = request.form.get("cook_time")
@@ -163,30 +159,42 @@ def add_recipe():
         ingredients = request.form.getlist("dynamic_ingredient")
         quantities = request.form.getlist("dynamic_quantity")
         instructions = request.form.getlist("dynamic_instruction")
-
-        now_time = datetime.now().isoformat()
-        recipe_id = add_recipeCounter(current_user.id)
-        ingredient_quantity = []
-        for ingredient, quantity in zip(ingredients, quantities):
-            ingredient_quantity.append({ingredient: quantity})
-        # DynamoDB書込
-        table.put_item(
-            Item={
-                'userId': current_user.id,
-                'SK': recipe_id,
-                'created_at': now_time,
-                'updated_at': now_time,
-                'title': title,
-                'ingredient': ingredient_quantity,
-                'step': instructions,
-                'cook_time': cook_time,
-                'memo': memo,
-                'recipe_img_path': s3_filename,
-            }
-        )
+        add_recipe_to_DynamoDB(title,ingredients,quantities,instructions,cook_time,memo,s3_filename)
         return f"レシピの追加完了しました！ <a href='{url_for('index')}'>HOMEに戻る</a>"
 
     return render_template('add_recipe.html')
+
+def add_recipe_to_DynamoDB(title,ingredients,quantities,instructions,cook_time,memo,s3_filename):
+    now_time = datetime.now().isoformat()
+    recipe_id = add_recipeCounter(current_user.id)
+    ingredient_quantity = []
+    for ingredient, quantity in zip(ingredients, quantities):
+        ingredient_quantity.append({ingredient: quantity})
+    cook_time = convert_none_empty_to_null(cook_time)
+    memo = convert_none_empty_to_null(memo)
+    s3_filename = convert_none_empty_to_null(s3_filename)
+    table.put_item(
+        Item={
+            'userId': current_user.id,
+            'SK': recipe_id,
+            'created_at': now_time,
+            'updated_at': now_time,
+            'title': title,
+            'ingredient': ingredient_quantity,
+            'step': instructions,
+            'cook_time': cook_time,
+            'memo': memo,
+            'recipe_img_path': s3_filename,
+            }
+        )
+    return None
+
+def convert_none_empty_to_null(data):
+    if data is None:
+        return {'NULL': True}
+    elif not data:
+        return {'NULL': True}
+    return data
 
 def add_recipeCounter(userId):
     """
@@ -221,16 +229,27 @@ def recipe_detail(recipe_id):
     dt = datetime.strptime(recipe['updated_at'], "%Y-%m-%dT%H:%M:%S.%f")
     recipe['updated_at'] = dt.strftime("%Y-%m-%d %H:%M")
     # S3画像ファイルパス
-    recipe_img_path = recipe['recipe_img_path']
-    # S3署名付きURLを発行（有効期限:3600秒 = 1時間）
-    signed_url = s3.generate_presigned_url(
+    recipe_img_path = recipe.get("recipe_img_path")
+    # S3署名付きURLを発行
+    signed_url = get_presigned_url(recipe_img_path)
+    return render_template(
+        'recipe_detail.html', recipe=recipe, enumerate=enumerate, signed_url=signed_url,
+    )
+
+def get_presigned_url(recipe_img_path):
+    if not recipe_img_path:  # None または 空文字 の場合
+        print("画像パスが存在しません。Noneを返します。")
+        return None
+    try:
+        signed_url = s3.generate_presigned_url(
         'get_object',
         Params={'Bucket': S3_BUCKET, 'Key': recipe_img_path},
         ExpiresIn=3600
     )
-    return render_template(
-        'recipe_detail.html', recipe=recipe, enumerate=enumerate, signed_url=signed_url,
-    )
+        return signed_url
+    except Exception as e:
+        print(f"署名付きURLの生成に失敗しました: {e}")
+        return None  # エラー発生時は None を返す
 
 @app.route('/upgrade_recipe', methods=['GET', 'POST'])
 @login_required
@@ -247,30 +266,43 @@ def upgrade_recipe():
         )
         recipe = db_response['Item']
         # S3画像ファイルパス
-        recipe_img_path = recipe['recipe_img_path']
-        # S3署名付きURLを発行（有効期限:3600秒 = 1時間）
-        signed_url = s3.generate_presigned_url(
-            'get_object',
-            Params={'Bucket': S3_BUCKET, 'Key': recipe_img_path},
-            ExpiresIn=3600
-        )
+        recipe_img_path = recipe.get("recipe_img_path")
+        # S3署名付きURLを発行
+        signed_url = get_presigned_url(recipe_img_path)
         return render_template(
             'upgrade_recipe.html',recipe=recipe, signed_url=signed_url,
         )
     if request.method == 'POST':
         recipe_id = request.args.get('recipe_id')
-        # 固定の入力欄の値を取得
+        # DynamoDB読込
+        db_response = table.get_item(
+            Key={
+                'userId': current_user.id,
+                'SK': recipe_id,
+            }
+        )
+        recipe = db_response['Item']
+        # S3画像ファイルパス
+        recipe_img_path = recipe.get("recipe_img_path")
+        created_at = recipe['created_at']
+
+        #　リクエスト値を取得
         title = request.form.get("title")
         cook_time = request.form.get("cook_time")
         memo = request.form.get("memo")
-        # 動的な入力欄の値(list型)を取得
+        # list型リクエスト値を取得
         ingredients = request.form.getlist("dynamic_ingredient")
         quantities = request.form.getlist("dynamic_quantity")
         instructions = request.form.getlist("dynamic_instruction")
-        # 画像更新の有無
+        # 旧画像の削除し、新たな画像を保存 (S3の画像更新)
         file = request.files.get("file")
-        if not file:
-            pass
+        if file:
+            s3.delete_object(Bucket=S3_BUCKET, Key=recipe_img_path)
+            filename = secure_filename(file.filename)
+            s3_filename = f"recipe/{current_user.id}/{filename}"
+            s3.upload_fileobj(file, S3_BUCKET, s3_filename)
+            recipe_img_path = s3_filename
+
         # DB書込
         now_time = datetime.now().isoformat()
         ingredient_quantity = []
@@ -280,14 +312,14 @@ def upgrade_recipe():
             Item={
                 'userId': current_user.id,
                 'SK': recipe_id,
-                'created_at': now_time,
+                'created_at': created_at,
                 'updated_at': now_time,
                 'title': title,
                 'ingredient': ingredient_quantity,
                 'step': instructions,
                 'cook_time': cook_time,
                 'memo': memo,
-                'step_img_path': ["a.img", "a.img"],
+                'step_img_path': recipe_img_path,
             }
         )
         return redirect( url_for('index') )
@@ -304,12 +336,13 @@ def delete_recipe():
         }
     )
     recipe = db_response['Item']
-    recipe_img_path = recipe['recipe_img_path']
+    recipe_img_path = recipe.get("recipe_img_path")
     # DynamoDBからレシピ削除
     table.delete_item(
         Key={'userId': current_user.id,
              'SK': recipe_id,}
     )
     # S3から画像削除
-    s3.delete_object(Bucket=S3_BUCKET, Key=recipe_img_path)
-    return redirect( url_for('index') )
+    if recipe_img_path not in (None, {'NULL': True}):
+        s3.delete_object(Bucket=S3_BUCKET, Key=recipe_img_path)
+    return f"レシピの削除完了しました！ <a href='{url_for('index')}'>HOMEに戻る</a>"
