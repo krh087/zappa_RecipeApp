@@ -1,6 +1,5 @@
 from flask import Flask, jsonify, render_template, request, redirect, url_for, session, flash
 from flask_login import UserMixin, LoginManager, login_user, logout_user, login_required, current_user
-from flask_dropzone import Dropzone
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -23,7 +22,6 @@ from config import config
 app = Flask(__name__)
 app.config.from_object(config)
 app.secret_key = b'gqJpZCI1InFad3OizQ'
-dropzone = Dropzone(app)
 
 # S3クライアントの初期化
 s3 = boto3.client('s3')
@@ -65,14 +63,29 @@ def load_user(user_id):
 @app.route('/', methods=['POST', 'GET'])
 @login_required
 def index():
-    response = table.query(
-        KeyConditionExpression=Key('userId').eq(current_user.id) & Key('SK').begins_with('RECIPE#recipe')
+
+    # updated_at GSIによる降順並び変え
+    sort_response = table.query(
+        IndexName='userId-updated_at-index',  # 作成したGSIのインデックス名
+        KeyConditionExpression=Key('userId').eq(current_user.id) & Key('SK').begins_with('RECIPE#recipe'),
+        ScanIndexForward=False  # 降順に並べ替え
     )
-    recipes = response['Items']
+    sort_recipes = sort_response['Items']
+    """
+    recipes = get_recipes_from_DynamoDB(current_user.id)
     for recipe in recipes:
         dt = datetime.strptime(recipe['updated_at'], "%Y-%m-%dT%H:%M:%S.%f")
         recipe['updated_at'] = dt.strftime("%Y-%m-%d %H:%M")
-    return render_template('index.html',  recipes=recipes, enumerate=enumerate)
+    """
+
+    return render_template('index.html', enumerate=enumerate, sort_recipes=sort_recipes)
+
+def get_recipes_from_DynamoDB(user_id):
+    response = table.query(
+        KeyConditionExpression=Key('userId').eq(user_id) & Key('SK').begins_with('RECIPE#recipe')
+    )
+    recipes = response['Items']
+    return recipes
 
 
 @app.route('/login', methods=['POST','GET'])
@@ -83,7 +96,7 @@ def login():
 
         gsi_response = table.query(
             IndexName = 'email-index',
-            KeyConditionExpression = Key('email').eq(input_email)
+            KeyConditionExpression = Key('email').eq(input_email),
         )
         # ログイン認証
         if input_password == gsi_response['Items'][0]['password']:
@@ -159,14 +172,15 @@ def add_recipe():
         ingredients = request.form.getlist("dynamic_ingredient")
         quantities = request.form.getlist("dynamic_quantity")
         instructions = request.form.getlist("dynamic_instruction")
-        add_recipe_to_DynamoDB(title,ingredients,quantities,instructions,cook_time,memo,s3_filename)
+        recipe_id = add_recipeCounter(current_user.id)
+        # DB書込
+        add_recipe_to_DynamoDB(title,recipe_id,ingredients,quantities,instructions,cook_time,memo,s3_filename)
         return f"レシピの追加完了しました！ <a href='{url_for('index')}'>HOMEに戻る</a>"
 
     return render_template('add_recipe.html')
 
-def add_recipe_to_DynamoDB(title,ingredients,quantities,instructions,cook_time,memo,s3_filename):
+def add_recipe_to_DynamoDB(title,recipe_id,ingredients,quantities,instructions,cook_time,memo,s3_filename):
     now_time = datetime.now().isoformat()
-    recipe_id = add_recipeCounter(current_user.id)
     ingredient_quantity = []
     for ingredient, quantity in zip(ingredients, quantities):
         ingredient_quantity.append({ingredient: quantity})
@@ -196,6 +210,12 @@ def convert_none_empty_to_null(data):
         return {'NULL': True}
     return data
 
+def convert_null_to_empty(data):
+    if data is {'NULL': True}:
+        return ""
+    return data
+
+
 def add_recipeCounter(userId):
     """
     指定された userId に対応するレシピカウンターをインクリメントし、
@@ -218,23 +238,27 @@ def add_recipeCounter(userId):
 @app.route('/recipe_detail/<string:recipe_id>')
 @login_required
 def recipe_detail(recipe_id):
-    # DynamoDB読込
-    db_response = table.get_item(
-        Key={
-            'userId': current_user.id,
-            'SK': recipe_id,
-        }
-    )
-    recipe = db_response['Item']
+    recipe = get_recipe_from_DynamoDB(current_user.id, recipe_id)
     dt = datetime.strptime(recipe['updated_at'], "%Y-%m-%dT%H:%M:%S.%f")
     recipe['updated_at'] = dt.strftime("%Y-%m-%d %H:%M")
     # S3画像ファイルパス
     recipe_img_path = recipe.get("recipe_img_path")
     # S3署名付きURLを発行
     signed_url = get_presigned_url(recipe_img_path)
+    print(f'{recipe.get("cook_time")} : {recipe.get("cook_time")}')
     return render_template(
         'recipe_detail.html', recipe=recipe, enumerate=enumerate, signed_url=signed_url,
     )
+
+def get_recipe_from_DynamoDB(user_id, recipe_id):
+    db_response = table.get_item(
+        Key={
+            'userId': user_id,
+            'SK': recipe_id,
+        }
+    )
+    recipe = db_response['Item']
+    return recipe
 
 def get_presigned_url(recipe_img_path):
     if not recipe_img_path:  # None または 空文字 の場合
@@ -255,16 +279,8 @@ def get_presigned_url(recipe_img_path):
 @login_required
 def upgrade_recipe():
     if request.method == 'GET':
-        # クエリパラメータにより変数(recipe_id)を受け取る
         recipe_id = request.args.get('recipe_id')
-        # DynamoDB読込
-        db_response = table.get_item(
-            Key={
-                'userId': current_user.id,
-                'SK': recipe_id,
-            }
-        )
-        recipe = db_response['Item']
+        recipe = get_recipe_from_DynamoDB(current_user.id, recipe_id)
         # S3画像ファイルパス
         recipe_img_path = recipe.get("recipe_img_path")
         # S3署名付きURLを発行
@@ -274,18 +290,10 @@ def upgrade_recipe():
         )
     if request.method == 'POST':
         recipe_id = request.args.get('recipe_id')
-        # DynamoDB読込
-        db_response = table.get_item(
-            Key={
-                'userId': current_user.id,
-                'SK': recipe_id,
-            }
-        )
-        recipe = db_response['Item']
+        recipe = get_recipe_from_DynamoDB(current_user.id, recipe_id)
         # S3画像ファイルパス
         recipe_img_path = recipe.get("recipe_img_path")
         created_at = recipe['created_at']
-
         #　リクエスト値を取得
         title = request.form.get("title")
         cook_time = request.form.get("cook_time")
@@ -302,40 +310,15 @@ def upgrade_recipe():
             s3_filename = f"recipe/{current_user.id}/{filename}"
             s3.upload_fileobj(file, S3_BUCKET, s3_filename)
             recipe_img_path = s3_filename
-
         # DB書込
-        now_time = datetime.now().isoformat()
-        ingredient_quantity = []
-        for ingredient, quantity in zip(ingredients, quantities):
-            ingredient_quantity.append({ingredient: quantity})
-        table.put_item(
-            Item={
-                'userId': current_user.id,
-                'SK': recipe_id,
-                'created_at': created_at,
-                'updated_at': now_time,
-                'title': title,
-                'ingredient': ingredient_quantity,
-                'step': instructions,
-                'cook_time': cook_time,
-                'memo': memo,
-                'step_img_path': recipe_img_path,
-            }
-        )
+        add_recipe_to_DynamoDB(title,recipe_id,ingredients,quantities,instructions,cook_time,memo,recipe_img_path)
         return redirect( url_for('index') )
 
 @app.route('/delete_recipe')
 @login_required
 def delete_recipe():
     recipe_id = request.args.get('recipe_id')
-    # DynamoDBからレシピ読込, S3画像ファイルパスを取得
-    db_response = table.get_item(
-        Key={
-            'userId': current_user.id,
-            'SK': recipe_id,
-        }
-    )
-    recipe = db_response['Item']
+    recipe = get_recipe_from_DynamoDB(current_user.id, recipe_id)
     recipe_img_path = recipe.get("recipe_img_path")
     # DynamoDBからレシピ削除
     table.delete_item(

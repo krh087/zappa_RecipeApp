@@ -5,7 +5,7 @@
 <form method="POST" enctype="multipart/form-data">
     <div>
         <label for="title">料理名</label>
-        <input type="text" name="title">
+        <input type="text" name="title" required>
     </div>
     <div>
     レシピ写真選択  <input type="file" name="file" id="fileInput"><br>
@@ -17,8 +17,8 @@
     <div id="dynamic-input-container">
         <label for="ingredient">材料 / 分量:</label>
         <br>
-        <input type="text" name="dynamic_ingredient" placeholder="（例）パスタ">
-        <input type="text" name="dynamic_quantity" placeholder="（例）100g">
+        <input type="text" name="dynamic_ingredient" placeholder="（例）パスタ" required>
+        <input type="text" name="dynamic_quantity" placeholder="（例）100g" required>
         <br>
     </div>
     <button type="button" onclick="addInputFields()">行追加</button>
@@ -27,7 +27,7 @@
     <div id="dynamic-input-container2">
         <label for="instructions">手順</label>
         <br>
-        <input type="text" name="dynamic_instruction" placeholder="(例)にんにくを刻み、オイルとにんにくを弱火で炒める">
+        <input type="text" name="dynamic_instruction" placeholder="(例)にんにくを刻み、オイルとにんにくを弱火で炒める" required>
         <br>
     </div>
     <button type="button" onclick="addInputFields2()">行追加</button>

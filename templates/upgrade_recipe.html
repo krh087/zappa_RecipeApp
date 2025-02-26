@@ -6,7 +6,7 @@
 <form method="POST">
     <div>
         <label for="title">料理名</label>
-        <input type="text" name="title" value="{{ recipe['title'] }}">
+        <input type="text" name="title" value="{{ recipe['title'] }}" required>
     </div>
     <div>
         {% if signed_url %}
@@ -23,8 +23,8 @@
         <br>
         {% for dict_ingredient in recipe['ingredient'] %}
             {% for ingredient, quantity in dict_ingredient.items() %}
-        <input type="text" name="dynamic_ingredient" value="{{ ingredient }}">
-        <input type="text" name="dynamic_quantity" value="{{ quantity }}">
+        <input type="text" name="dynamic_ingredient" value="{{ ingredient }}" required>
+        <input type="text" name="dynamic_quantity" value="{{ quantity }}" required>
         <br>
             {% endfor %}
         {% endfor %}
@@ -36,21 +36,29 @@
         <label for="instructions">手順</label>
         <br>
         {% for step in recipe['step'] %}
-        <input type="text" name="dynamic_instruction" value="{{ step }}">
+        <input type="text" name="dynamic_instruction" value="{{ step }}" required>
         <br>
         {% endfor %}
     </div>
     <button type="button" onclick="addInputFields2()">行追加</button>
     <br><br>
     <div>
-        <label for="cook_time">料理時間(分)</label>
+        <label for="cook_time">調理時間</label>
+        {% if recipe['cook_time'] == {'NULL': true} %}
+        <input type="text" name="cook_time">
+        {% else %}
         <input type="text" name="cook_time" value="{{ recipe['cook_time'] }}">
+        {% endif %}
     </div>
     <br>
     <div>
         <label for="memo">メモ・コツ</label>
         <br>
+        {% if recipe['memo'] == {'NULL': true} %}
+        <textarea id="memo" name="memo" rows="4"></textarea>
+        {% else %}
         <textarea id="memo" name="memo" rows="4">{{ recipe['memo'] }}</textarea>
+        {% endif %}
         <br>
     </div>
     <br>

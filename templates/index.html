@@ -3,7 +3,7 @@
 {% block content %}
 <h2>{{ username }}さん  こんにちは</h2>
 <a>current_user.id : {{ current_user.id }}</a><br>
-{% for recipe in recipes%}
+{% for recipe in sort_recipes%}
 <a>[recipe]{{ recipe }}</a><br>
 {% endfor %}
 
@@ -15,16 +15,20 @@
             <tr>
               <th scope="col">#</th>
               <th scope="col">料理名</th>
-              <th scope="col">料理時間(分)</th>
+              <th scope="col">調理時間</th>
               <th scope="col">最終更新時間</th>
             </tr>
         </thead>
         <tbody>
-            {% for i, recipe in enumerate(recipes, 1) %}
+            {% for i, recipe in enumerate(sort_recipes, 1) %}
             <tr>
               <th scope="row">{{ i }}</th>
               <td><a href="{{ url_for('recipe_detail', recipe_id=recipe['SK']) }}">{{ recipe['title'] }}</a></td>
+              {% if recipe['cook_time'] == {'NULL': true} %}
+              <td> ---- </td>
+              {% else %}
               <td>{{ recipe['cook_time'] }}</td>
+              {% endif %}
               <td>{{ recipe['updated_at'] }}</td>
             </tr>
             {% endfor %}

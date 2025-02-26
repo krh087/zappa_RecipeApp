@@ -44,7 +44,13 @@
         </div>
         <div class="memo">
           <h5>メモ・コツ：</h5>
-          <div><p>{{ recipe['memo'] }}</p></div>
+          <div>
+          {% if recipe['memo'] == {'NULL': true} %}
+            <p></p>
+          {% else %}
+            <p>{{ recipe['memo'] }}</p>
+          {% endif %}
+          </div>
         <div class="row border p-2 mb-2">
           <div class="col-sm-3"><h5>最終更新日：</h5>
           <p>{{ recipe['updated_at'] }}</p>
