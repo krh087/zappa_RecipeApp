@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<h2>{{ username }}さん  こんにちは</h2>
+<h2>{{ current_user.userName }}さん  こんにちは</h2>
 <a>current_user.id : {{ current_user.id }}</a><br>
 {% for recipe in sort_recipes%}
 <a>[recipe]{{ recipe }}</a><br>
@@ -14,6 +14,7 @@
         <thead>
             <tr>
               <th scope="col">#</th>
+              <th scope="col">画像</th>
               <th scope="col">料理名</th>
               <th scope="col">調理時間</th>
               <th scope="col">最終更新時間</th>
@@ -23,6 +24,11 @@
             {% for i, recipe in enumerate(sort_recipes, 1) %}
             <tr>
               <th scope="row">{{ i }}</th>
+              <td>
+                <img src="{{ recipe['recipe_img_path'] if recipe['recipe_img_path'] == {'NULL': true} else 'http://placehold.jp/24/cc9999/993333/100x100.png' }}" 
+                     alt="レシピ画像" 
+                     style="width: 100px; height: 100px; object-fit: cover;">
+              </td>
               <td><a href="{{ url_for('recipe_detail', recipe_id=recipe['SK']) }}">{{ recipe['title'] }}</a></td>
               {% if recipe['cook_time'] == {'NULL': true} %}
               <td> ---- </td>

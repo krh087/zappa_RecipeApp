@@ -4,7 +4,7 @@ from flask_login import UserMixin, LoginManager, login_user, logout_user, login_
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import decimal
 import os
 import pytz
@@ -41,12 +41,16 @@ if not os.path.exists(app.config['UPLOAD_FOLDER']):
 
 # Flask-LoginManager初期設定
 login_manager = LoginManager(app)
+
 class User(UserMixin):
-    def __init__(self, user_id):
+    def __init__(self, user_id, userName):
         self.id = user_id
+        self.userName = userName
+
 @login_manager.unauthorized_handler
 def unauthorized():
     return redirect('dev/login')
+
 @login_manager.user_loader
 def load_user(user_id):
     response = table.get_item(
@@ -56,29 +60,33 @@ def load_user(user_id):
         }
     )
     if 'Item' in response:
-        return User(user_id)
+        user_profile = response['Item']
+        userName = user_profile.get('userName', 'NoName')
+        return User(user_id, userName)
     return None
 
 
 @app.route('/', methods=['POST', 'GET'])
 @login_required
 def index():
-
     # updated_at GSIによる降順並び変え
     sort_response = table.query(
-        IndexName='userId-updated_at-index',  # 作成したGSIのインデックス名
-        KeyConditionExpression=Key('userId').eq(current_user.id) & Key('SK').begins_with('RECIPE#recipe'),
-        ScanIndexForward=False  # 降順に並べ替え
+        IndexName='userId-updated_at-index',
+        KeyConditionExpression=Key('userId').eq(current_user.id) & Key('updated_at').begins_with('RECIPE#'),
+        ScanIndexForward=False
     )
     sort_recipes = sort_response['Items']
-    """
-    recipes = get_recipes_from_DynamoDB(current_user.id)
-    for recipe in recipes:
-        dt = datetime.strptime(recipe['updated_at'], "%Y-%m-%dT%H:%M:%S.%f")
-        recipe['updated_at'] = dt.strftime("%Y-%m-%d %H:%M")
-    """
+    for sort_recipe in sort_recipes:
+        sort_recipe['updated_at'] = convert_recipeDatetime_to_StrJstDatetime(sort_recipe['updated_at'])
 
     return render_template('index.html', enumerate=enumerate, sort_recipes=sort_recipes)
+
+def convert_recipeDatetime_to_StrJstDatetime(recipeDatetime):
+    datetime_str = recipeDatetime.split("#")[1]
+    dt_utc = datetime.fromisoformat(datetime_str).replace(tzinfo=timezone.utc)
+    dt_jst = dt_utc.astimezone(timezone(timedelta(hours=9)))
+    str_dt_jst = dt_jst.strftime("%Y-%m-%d %H:%M:%S")
+    return str_dt_jst
 
 def get_recipes_from_DynamoDB(user_id):
     response = table.query(
@@ -129,7 +137,7 @@ def signup():
 
         unique_id = uuid.uuid4()
         num_unique_userid =  unique_id.int % (10**12)
-        now_time = datetime.now().isoformat()
+        now_time = f'PROFILE#{datetime.now().isoformat()}'
         table.put_item(
             Item={
                 'userId': 'USER#user' + str(num_unique_userid),
@@ -180,7 +188,7 @@ def add_recipe():
     return render_template('add_recipe.html')
 
 def add_recipe_to_DynamoDB(title,recipe_id,ingredients,quantities,instructions,cook_time,memo,s3_filename):
-    now_time = datetime.now().isoformat()
+    now_time = f'RECIPE#{datetime.now().isoformat()}'
     ingredient_quantity = []
     for ingredient, quantity in zip(ingredients, quantities):
         ingredient_quantity.append({ingredient: quantity})
@@ -239,13 +247,10 @@ def add_recipeCounter(userId):
 @login_required
 def recipe_detail(recipe_id):
     recipe = get_recipe_from_DynamoDB(current_user.id, recipe_id)
-    dt = datetime.strptime(recipe['updated_at'], "%Y-%m-%dT%H:%M:%S.%f")
-    recipe['updated_at'] = dt.strftime("%Y-%m-%d %H:%M")
-    # S3画像ファイルパス
+    recipe['updated_at'] = convert_recipeDatetime_to_StrJstDatetime(recipe['updated_at'])
     recipe_img_path = recipe.get("recipe_img_path")
     # S3署名付きURLを発行
     signed_url = get_presigned_url(recipe_img_path)
-    print(f'{recipe.get("cook_time")} : {recipe.get("cook_time")}')
     return render_template(
         'recipe_detail.html', recipe=recipe, enumerate=enumerate, signed_url=signed_url,
     )
@@ -281,7 +286,6 @@ def upgrade_recipe():
     if request.method == 'GET':
         recipe_id = request.args.get('recipe_id')
         recipe = get_recipe_from_DynamoDB(current_user.id, recipe_id)
-        # S3画像ファイルパス
         recipe_img_path = recipe.get("recipe_img_path")
         # S3署名付きURLを発行
         signed_url = get_presigned_url(recipe_img_path)
@@ -302,7 +306,7 @@ def upgrade_recipe():
         ingredients = request.form.getlist("dynamic_ingredient")
         quantities = request.form.getlist("dynamic_quantity")
         instructions = request.form.getlist("dynamic_instruction")
-        # 旧画像の削除し、新たな画像を保存 (S3の画像更新)
+        # S3の画像更新
         file = request.files.get("file")
         if file:
             s3.delete_object(Bucket=S3_BUCKET, Key=recipe_img_path)
@@ -310,7 +314,6 @@ def upgrade_recipe():
             s3_filename = f"recipe/{current_user.id}/{filename}"
             s3.upload_fileobj(file, S3_BUCKET, s3_filename)
             recipe_img_path = s3_filename
-        # DB書込
         add_recipe_to_DynamoDB(title,recipe_id,ingredients,quantities,instructions,cook_time,memo,recipe_img_path)
         return redirect( url_for('index') )
 
