@@ -1,0 +1,72 @@
+<script src="static/addInputField.js" defer></script>
+{% extends "layout.html" %}
+{% block content %}
+<h1>新規生成レシピ</h1>
+<form method="POST" enctype="multipart/form-data">
+    <div>
+        <label for="title">料理名</label>
+        <input type="text" name="title" value="{{ dish_name }} ({{gemini_recipe.get('何人前')}})">
+    </div>
+    <div>
+    レシピ写真選択  <input type="file" name="file" id="fileInput"><br>
+    </div>
+    <div>
+        <img id="preview" src="" alt="画像プレビュー" style="max-width: 300px; display: none;">
+    </div>
+    <!-- 動的入力欄のコンテナ1 -->
+    <div id="dynamic-input-container">
+        <label for="ingredient">材料 / 分量:</label>
+        {% for dict_ingredient in gemini_recipe.get('材料') %}
+            <div class="input-row">
+                <input type="text" name="dynamic_ingredient" value="{{ dict_ingredient['name'] }}" required>
+                <input type="text" name="dynamic_quantity" value="{{ dict_ingredient['quantity'] }}" required>
+            </div>
+        {% endfor %}
+    </div>
+    <button type="button" onclick="addInputFields()">行追加</button>
+    <br><br>
+    <!-- 動的入力欄のコンテナ2 -->
+    <div id="dynamic-input-container2">
+        <label for="instructions">手順</label>
+        <br>
+        {% for dict_step in gemini_recipe.get('手順') %}
+            <div class="input-row">
+                <input type="text" name="dynamic_instruction" value="{{ dict_step }}" required>
+            </div>
+        {% endfor %}
+    </div>
+    <button type="button" onclick="addInputFields2()">行追加</button>
+    <br><br>
+    <div>
+        <label for="cook_time">料理時間</label>
+        <input type="text" name="cook_time" value="{{ gemini_recipe.get('調理時間') }}">
+    </div>
+    <br>
+    <div>
+        <label for="memo">メモ・コツ</label>
+        <br>
+        <textarea id="memo" name="memo" rows="4">{{ "\n".join(gemini_recipe.get('調理ポイント')) }}</textarea>
+        <br>
+    </div>
+    <br>
+    <button id="register" type="submit">レシピ追加する</button>
+</form>
+
+<br><br>
+<a href="{{ url_for('index') }}">戻る</a>
+
+<script>
+    document.getElementById('fileInput').addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('newImage').src = e.target.result;
+          document.getElementById('newImage').style.display = 'block';
+          document.getElementById('oldImage').style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  </script>
+{% endblock %}

@@ -2,18 +2,30 @@
 
 {% block content %}
 <h1>アカウントを作成する</h1>
+
+    <!-- フラッシュメッセージ表示 -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul style="list-style-type: none;">
+                {% for category, message in messages %}
+                    <li class="alert alert-{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
         <form method="post" action="{{ url_for('signup') }}">
             <div>
-                <label for="username">ユーザー</label>
-                <input type="text" id="username" name="username" required>
+                <label for="username">ユーザー名</label>
+                <input type="text" id="username" name="username" placeholder="ユーザー名を入力" required>
             </div>
             <div>
                 <label for="email">E-mail</label>
-                <input type="text" id="email" name="email" required>
+                <input type="text" id="email" name="email" placeholder="例 : xxx@example.com" required>
             </div>
             <div>
                 <label for="password">パスワード</label>
-                <input type="text" id="password" name="password" required>
+                <input type="text" id="password" name="password" placeholder="パスワードを入力" required>
             </div>
             <button type="submit">登録</button>
             <a href="{{ url_for('login') }}" role="button">戻る</a>

@@ -1,9 +1,9 @@
+<script src="static/addInputField.js" defer></script>
 {% extends "layout.html" %}
-
 {% block content %}
-<h1>レシピの編集</h1>
 
-<form method="POST">
+<h1>レシピの編集</h1>
+<form method="POST" enctype="multipart/form-data">
     <div>
         <label for="title">料理名</label>
         <input type="text" name="title" value="{{ recipe['title'] }}" required>
@@ -15,19 +15,20 @@
         <img id="newImage" style="max-width: 300px; display: none;">
     </div>
     <div>
-        レシピ写真選択  <input type="file" id="fileInput"><br>
+        レシピ写真選択  <input type="file" id="fileInput" name="file"><br>
     </div>
     <!-- 動的入力欄のコンテナ1 -->
     <div id="dynamic-input-container">
         <label for="ingredient">材料 / 分量:</label>
         <br>
-        {% for dict_ingredient in recipe['ingredient'] %}
-            {% for ingredient, quantity in dict_ingredient.items() %}
-        <input type="text" name="dynamic_ingredient" value="{{ ingredient }}" required>
-        <input type="text" name="dynamic_quantity" value="{{ quantity }}" required>
-        <br>
-            {% endfor %}
-        {% endfor %}
+
+    {% for dict_ingredient in recipe['ingredient'] %}
+        <div class="input-row">
+            <input type="text" name="dynamic_ingredient" value="{{ dict_ingredient['name'] }}" required>
+            <input type="text" name="dynamic_quantity" value="{{ dict_ingredient['quantity'] }}" required>
+        </div>
+    {% endfor %}
+
     </div>
     <button type="button" onclick="addInputFields()">行追加</button>
     <br><br>
@@ -36,8 +37,9 @@
         <label for="instructions">手順</label>
         <br>
         {% for step in recipe['step'] %}
-        <input type="text" name="dynamic_instruction" value="{{ step }}" required>
-        <br>
+        <div class="input-row">
+            <input type="text" name="dynamic_instruction" value="{{ step }}" required>
+        </div>
         {% endfor %}
     </div>
     <button type="button" onclick="addInputFields2()">行追加</button>
@@ -68,7 +70,6 @@
 <br><br>
 <a href="{{ url_for('index') }}">戻る</a>
 
-<script src="static/addInputField.js" defer></script>
 <script>
     document.getElementById('fileInput').addEventListener('change', function(event) {
       const file = event.target.files[0];

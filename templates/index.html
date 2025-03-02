@@ -2,10 +2,6 @@
 
 {% block content %}
 <h2>{{ current_user.userName }}さん  こんにちは</h2>
-<a>current_user.id : {{ current_user.id }}</a><br>
-{% for recipe in sort_recipes%}
-<a>[recipe]{{ recipe }}</a><br>
-{% endfor %}
 
 <a href="{{ url_for('add_recipe') }}" role="button">新規レシピ作成</a>
 <div class="container mt-4">
@@ -25,8 +21,8 @@
             <tr>
               <th scope="row">{{ i }}</th>
               <td>
-                <img src="{{ recipe['recipe_img_path'] if recipe['recipe_img_path'] == {'NULL': true} else 'http://placehold.jp/24/cc9999/993333/100x100.png' }}" 
-                     alt="レシピ画像" 
+                <img src="{{ recipe['recipe_img_path'] if recipe['recipe_img_path'] != None else noImage_pre_url }}"
+                     alt="レシピ画像"
                      style="width: 100px; height: 100px; object-fit: cover;">
               </td>
               <td><a href="{{ url_for('recipe_detail', recipe_id=recipe['SK']) }}">{{ recipe['title'] }}</a></td>
@@ -43,4 +39,5 @@
 
 <br><br>
 <a href="{{ url_for('logout') }}" role="button">ログアウト</a>
+<br><a href="{{ url_for('gemini_generate_recipe') }}" role="button">gemini</a>
 {% endblock %}

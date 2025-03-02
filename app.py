@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template, request, redirect, url_for, session, flash
+from flask import Flask, jsonify, render_template, request, redirect, url_for, session, flash, get_flashed_messages
 from flask_login import UserMixin, LoginManager, login_user, logout_user, login_required, current_user
 
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -6,34 +6,49 @@ from werkzeug.utils import secure_filename
 
 from datetime import datetime, timezone, timedelta
 import decimal
+import json
 import os
 import pytz
+import secrets
 import tempfile
 import uuid
 
 import boto3
 from boto3.dynamodb.conditions import Key
-from botocore.exceptions import ClientError
 
 from config import config
 
+import google.generativeai as genai
+
+# AWS Systems Managerクライアントの初期化
+SSM_REGION = 'ap-northeast-1'
+ssm = boto3.client('ssm', region_name=SSM_REGION)
+
+def get_SystemsManagerParam(param_name, WithDecryption=True):
+    response = ssm.get_parameter(
+        Name=param_name,
+        WithDecryption=WithDecryption
+    )
+    return response['Parameter']['Value']
 
 # Flask設定
 app = Flask(__name__)
 app.config.from_object(config)
-app.secret_key = b'gqJpZCI1InFad3OizQ'
 
-# S3クライアントの初期化
-s3 = boto3.client('s3')
-# S3バケット名
-S3_BUCKET = 'myawsbucketrecipeimg2'
-# Region
-S3_REGION = 'ap-northeast-1'
+# Parameter Store から取得
+app.secret_key = get_SystemsManagerParam('/zappa_RecipeApp/dev/AppSecret_key')
+DynamoDB_TABLE = get_SystemsManagerParam('/zappa_RecipeApp/dev/DynamoDB_Table')
+GEMINI_API_KEY = get_SystemsManagerParam('/zappa_RecipeApp/dev/Gemini_api_key')
 
 # DynamoDB設定
-dynamodb = boto3.resource('dynamodb', region_name='ap-northeast-1')
-table = dynamodb.Table('UserRecipe')
+DynamoDB_REGION = 'ap-northeast-1'
+dynamodb = boto3.resource('dynamodb', region_name=DynamoDB_REGION)
+table = dynamodb.Table(DynamoDB_TABLE)
 
+# S3クライアントの初期化
+S3_BUCKET = 'myawsbucketrecipeimg2'
+S3_REGION = 'ap-northeast-1'
+s3 = boto3.client('s3')
 
 # アップロードフォルダが存在しない場合は作成
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
@@ -78,8 +93,11 @@ def index():
     sort_recipes = sort_response['Items']
     for sort_recipe in sort_recipes:
         sort_recipe['updated_at'] = convert_recipeDatetime_to_StrJstDatetime(sort_recipe['updated_at'])
-
-    return render_template('index.html', enumerate=enumerate, sort_recipes=sort_recipes)
+        # S3署名付きURLを発行
+        sort_recipe['recipe_img_path'] = get_presigned_url(sort_recipe['recipe_img_path'])
+    noImage_pre_url = get_presigned_url('NoImage.png')
+    print(f'noImage_pre_url : {noImage_pre_url}')
+    return render_template('index.html', enumerate=enumerate, sort_recipes=sort_recipes, noImage_pre_url=noImage_pre_url)
 
 def convert_recipeDatetime_to_StrJstDatetime(recipeDatetime):
     datetime_str = recipeDatetime.split("#")[1]
@@ -110,7 +128,7 @@ def login():
         if input_password == gsi_response['Items'][0]['password']:
             username = gsi_response['Items'][0]['userName']
             user_id = gsi_response['Items'][0]['userId']
-            user = User(user_id)
+            user = User(user_id, username)
             login_user(user)
             return redirect( url_for('index') )
         else:
@@ -137,10 +155,29 @@ def signup():
 
         unique_id = uuid.uuid4()
         num_unique_userid =  unique_id.int % (10**12)
+        userId = 'USER#user' + str(num_unique_userid)
         now_time = f'PROFILE#{datetime.now().isoformat()}'
+
+        # メールアドレスの重複チェック
+        gsi_response = table.query(
+            IndexName = 'email-index',
+            KeyConditionExpression = Key('email').eq(email),
+        )
+        if gsi_response['Count'] > 0:
+            flash('このメールアドレスは既に登録されています。', 'error')
+
+        # パスワードの長さチェック（8文字以上）
+        if len(password) < 8:
+            flash('パスワードは8文字以上で入力してください。', 'error')
+
+        print('ERRORMSG')
+        print([msg[0] for msg in get_flashed_messages(with_categories=True)])
+        if 'error' in [msg[0] for msg in get_flashed_messages(with_categories=True)]:
+            return render_template('signup.html')
+
         table.put_item(
             Item={
-                'userId': 'USER#user' + str(num_unique_userid),
+                'userId': userId,
                 'SK': 'PROFILE',
                 'userName': username,
                 'password': password,
@@ -149,9 +186,7 @@ def signup():
                 'updated_at': now_time,
             }
         )
-        return render_template(
-            'login.html'
-        )
+        return redirect(url_for('login'))
     if request.method == 'GET':
         return render_template(
             'signup.html'
@@ -161,37 +196,35 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
+
 @app.route("/add_recipe", methods=["GET", "POST"])
 @login_required
 def add_recipe():
     if request.method == "POST":
-        # 画像を取得し、S3にアップロード
-        file = request.files.get("file")
-        s3_filename = None
-        if file:
-            filename = secure_filename(file.filename)
-            s3_filename = f"recipe/{current_user.id}/{filename}"
-            s3.upload_fileobj(file, S3_BUCKET, s3_filename)
-        # リクエスト値を取得
-        title = request.form.get("title")
-        cook_time = request.form.get("cook_time")
-        memo = request.form.get("memo")
-        # list型リクエスト値を取得
-        ingredients = request.form.getlist("dynamic_ingredient")
-        quantities = request.form.getlist("dynamic_quantity")
-        instructions = request.form.getlist("dynamic_instruction")
-        recipe_id = add_recipeCounter(current_user.id)
-        # DB書込
-        add_recipe_to_DynamoDB(title,recipe_id,ingredients,quantities,instructions,cook_time,memo,s3_filename)
-        return f"レシピの追加完了しました！ <a href='{url_for('index')}'>HOMEに戻る</a>"
-
+        try:
+            # 画像アップロード
+            file = request.files.get("file")
+            s3_filename = upload_image_to_s3(file)
+            # レシピデータ取得
+            recipe_data = extract_recipe_data()
+            # データ保存
+            save_recipe_to_db(recipe_data, s3_filename)
+            return f"レシピの追加完了しました！ <a href='{url_for('index')}'>HOMEに戻る</a>"
+        except Exception as e:
+            print(f"エラーが発生しました: {str(e)}")
+            return render_template('add_recipe.html')
     return render_template('add_recipe.html')
 
 def add_recipe_to_DynamoDB(title,recipe_id,ingredients,quantities,instructions,cook_time,memo,s3_filename):
     now_time = f'RECIPE#{datetime.now().isoformat()}'
+
+    ingredient_quantity = [{"name": ingredient, "quantity": quantity} for ingredient, quantity in zip(ingredients, quantities)]
+    print(f"ingredient_quantity : {ingredient_quantity}")
+    """
     ingredient_quantity = []
     for ingredient, quantity in zip(ingredients, quantities):
         ingredient_quantity.append({ingredient: quantity})
+    """
     cook_time = convert_none_empty_to_null(cook_time)
     memo = convert_none_empty_to_null(memo)
     s3_filename = convert_none_empty_to_null(s3_filename)
@@ -266,7 +299,7 @@ def get_recipe_from_DynamoDB(user_id, recipe_id):
     return recipe
 
 def get_presigned_url(recipe_img_path):
-    if not recipe_img_path:  # None または 空文字 の場合
+    if recipe_img_path in ("", None, {'NULL': True}):  # 空文字,None,DynamoDBのNULL値 いずれかの場合
         print("画像パスが存在しません。Noneを返します。")
         return None
     try:
@@ -277,8 +310,8 @@ def get_presigned_url(recipe_img_path):
     )
         return signed_url
     except Exception as e:
-        print(f"署名付きURLの生成に失敗しました: {e}")
-        return None  # エラー発生時は None を返す
+        print(f"{recipe_img_path}は署名付きURLの生成に失敗しました: {e}")
+        return None
 
 @app.route('/upgrade_recipe', methods=['GET', 'POST'])
 @login_required
@@ -295,7 +328,6 @@ def upgrade_recipe():
     if request.method == 'POST':
         recipe_id = request.args.get('recipe_id')
         recipe = get_recipe_from_DynamoDB(current_user.id, recipe_id)
-        # S3画像ファイルパス
         recipe_img_path = recipe.get("recipe_img_path")
         created_at = recipe['created_at']
         #　リクエスト値を取得
@@ -308,12 +340,18 @@ def upgrade_recipe():
         instructions = request.form.getlist("dynamic_instruction")
         # S3の画像更新
         file = request.files.get("file")
+        print(f"file : {file}")
         if file:
-            s3.delete_object(Bucket=S3_BUCKET, Key=recipe_img_path)
+            print("file exit")
+            if recipe_img_path != {'NULL': True}:
+                s3.delete_object(Bucket=S3_BUCKET, Key=recipe_img_path)
             filename = secure_filename(file.filename)
             s3_filename = f"recipe/{current_user.id}/{filename}"
+            print(f"s_filaname : {s3_filename}")
             s3.upload_fileobj(file, S3_BUCKET, s3_filename)
             recipe_img_path = s3_filename
+        else:
+            print("file not exit")
         add_recipe_to_DynamoDB(title,recipe_id,ingredients,quantities,instructions,cook_time,memo,recipe_img_path)
         return redirect( url_for('index') )
 
@@ -332,3 +370,122 @@ def delete_recipe():
     if recipe_img_path not in (None, {'NULL': True}):
         s3.delete_object(Bucket=S3_BUCKET, Key=recipe_img_path)
     return f"レシピの削除完了しました！ <a href='{url_for('index')}'>HOMEに戻る</a>"
+
+
+def get_gemini_recipe(dish_name):
+        """Gemini API からレシピ情報を JSON 形式で取得"""
+        prompt = f"""
+        {dish_name} のレシピを JSON 形式で日本語で出力してください。
+        必ず以下のフォーマットに従ってください。
+        出力には、前後にコードブロック (```json) を付けずに、直接 JSON 形式で出力してください。
+        ```
+        {{
+        "材料": [
+            {{"name": "玉ねぎ", "quantity": "大1個"}},
+            {{"name": "にんじん", "quantity": "1本"}},
+            {{"name": "トマト缶（カットトマト）", "quantity": "400g"}}
+        ],
+        "手順": [
+            "玉ねぎをみじん切りにする。",
+            "鍋に油をひき、玉ねぎを炒める。",
+            "カレー粉を加えて香りを出す。"
+        ],
+        "調理時間": "40分",
+        "調理ポイント": [
+            "スパイスは焦がさないように弱火で炒める。",
+            "トマトを加えると酸味が増して美味しくなる。"
+        ],
+        "何人前": "4人前"
+        }}
+        ```
+        """
+
+        try:
+            model = genai.GenerativeModel("gemini-1.5-pro")
+            response = model.generate_content(prompt)
+
+            if response and response.text:
+                return json.loads(response.text)  # JSON -> dict に変換
+            else:
+                return {"error": "レシピの取得に失敗しました"}
+        except json.JSONDecodeError:
+            return {"error": "JSON の解析に失敗しました"}
+        except Exception as e:
+            return {"error": str(e)}
+
+@app.route('/gemini_generate_recipe', methods=['GET', 'POST'])
+@login_required
+def gemini_generate_recipe():
+    if request.method == 'POST':
+        dish_name = request.form.get('title')
+        # APIキーを設定
+        genai.configure(api_key=GEMINI_API_KEY)
+        gemini_recipe = get_gemini_recipe(dish_name)
+        print(gemini_recipe)
+        #return render_template('gemini_add_recipe.html', dish_name=dish_name, gemini_recipe=gemini_recipe)
+        session['dish_name'] = dish_name
+        session['gemini_recipe'] = gemini_recipe
+        return redirect(url_for('gemini_add_recipe'))
+    return render_template('gemini_generate_recipe.html')
+
+
+def upload_image_to_s3(file):
+    """ 画像をS3にアップロードする """
+    if file:
+        filename = secure_filename(file.filename)
+        s3_filename = f"recipe/{current_user.id}/{filename}"
+        try:
+            s3.upload_fileobj(file, S3_BUCKET, s3_filename)
+            return s3_filename
+        except Exception as e:
+            flash("画像のアップロードに失敗しました。")
+            return None
+    return None
+
+def extract_recipe_data():
+    """ フォームからレシピデータを取得し、バリデーションを行う """
+    title = request.form.get("title")
+    cook_time = request.form.get("cook_time")
+    memo = request.form.get("memo")
+    ingredients = request.form.getlist("dynamic_ingredient")
+    quantities = request.form.getlist("dynamic_quantity")
+    instructions = request.form.getlist("dynamic_instruction")
+    return {
+        "title": title,
+        "cook_time": cook_time,
+        "memo": memo,
+        "ingredients": ingredients,
+        "quantities": quantities,
+        "instructions": instructions
+    }
+
+def save_recipe_to_db(recipe_data, s3_filename):
+    """ レシピデータをDynamoDBに保存する """
+    recipe_id = add_recipeCounter(current_user.id)
+    add_recipe_to_DynamoDB(
+        recipe_data["title"], recipe_id,
+        recipe_data["ingredients"], recipe_data["quantities"], recipe_data["instructions"],
+        recipe_data["cook_time"], recipe_data["memo"], s3_filename
+    )
+
+@app.route('/gemini_add_recipe', methods=['GET', 'POST'])
+@login_required
+def gemini_add_recipe():
+    if request.method == 'POST':
+        try:
+            # 画像アップロード
+            file = request.files.get("file")
+            s3_filename = upload_image_to_s3(file)
+            # レシピデータ取得
+            recipe_data = extract_recipe_data()
+            # データ保存
+            save_recipe_to_db(recipe_data, s3_filename)
+            return f"レシピの追加完了しました！ <a href='{url_for('index')}'>HOMEに戻る</a>"
+        except Exception as e:
+            print(f"エラーが発生しました: {str(e)}")
+            return redirect(url_for('gemini_add_recipe'))
+
+    # セッションからデータを取得
+    dish_name = session.pop('dish_name', None)
+    gemini_recipe = session.pop('gemini_recipe', None)
+    return render_template('gemini_add_recipe.html', dish_name=dish_name, gemini_recipe=gemini_recipe)

@@ -7,7 +7,7 @@
     <div class="main-container">
         <div class="title">
           <h5>料理名：</h5>
-          <div class="title-content"><p>{{ recipe['title'] }} {{ recipe['step_photo_path'] }}</p></div>
+          <div class="title-content"><p>{{ recipe['title'] }}</p></div>
         </div>
         {% if signed_url %}
         <div>
@@ -23,13 +23,11 @@
             </tr>
           </thead>
           <tbody>
-            {% for dict_ingredient in recipe['ingredient'] %}
-            {% for ingredient, quantity in dict_ingredient.items() %}
-            <tr>
-              <td>{{ ingredient }}</td>
-              <td>{{ quantity }}</td>
-            </tr>
-            {% endfor %}
+            {% for dict_ingredient in recipe["ingredient"] %}
+              <tr>
+                <td>{{dict_ingredient["name"]}}</td>
+                <td>{{dict_ingredient["quantity"]}}</td>
+              </tr>
             {% endfor %}
           </tbody>
           </table>

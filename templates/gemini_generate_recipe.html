@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h1>~レシピ名入力でレシピ自動生成~</h1>
+<h3>レシピ生成に少し時間がかかります</h3>
+
+        <form method="post" action="{{ url_for('gemini_generate_recipe') }}">
+            <div>
+                <label for="title">レシピ名</label>
+                <input type="text" id="title" name="title" placeholder="レシピ名を入力" required>
+            </div>
+            <button type="submit">送信</button>
+            <a href="{{ url_for('login') }}" role="button">戻る</a>
+        </form>
+{% endblock %}
