@@ -4,28 +4,28 @@
 
 <h1>レシピの編集</h1>
 <form method="POST" enctype="multipart/form-data">
-    <div>
+    <div class="form-group">
         <label for="title">料理名</label>
-        <input type="text" name="title" value="{{ recipe['title'] }}" required>
+        <input type="text" name="title" value="{{ recipe['title'] }}" class="form-control" required>
     </div>
-    <div>
+    <div class="form-group">
         {% if signed_url %}
         <img id="oldImage" src="{{ signed_url }}" alt="S3 Image" style="max-width: 300px;">
         {% endif %}
         <img id="newImage" style="max-width: 300px; display: none;">
     </div>
-    <div>
-        レシピ写真選択  <input type="file" id="fileInput" name="file"><br>
+    <div class="form-group">
+        レシピ写真選択  <input type="file" id="fileInput" name="file" class="form-control"><br>
     </div>
     <!-- 動的入力欄のコンテナ1 -->
-    <div id="dynamic-input-container">
+    <div id="dynamic-input-container" class="form-group">
         <label for="ingredient">材料 / 分量:</label>
         <br>
 
     {% for dict_ingredient in recipe['ingredient'] %}
         <div class="input-row">
-            <input type="text" name="dynamic_ingredient" value="{{ dict_ingredient['name'] }}" required>
-            <input type="text" name="dynamic_quantity" value="{{ dict_ingredient['quantity'] }}" required>
+            <input type="text" name="dynamic_ingredient" value="{{ dict_ingredient['name'] }}" class="form-control" required>
+            <input type="text" name="dynamic_quantity" value="{{ dict_ingredient['quantity'] }}" class="form-control" required>
         </div>
     {% endfor %}
 
@@ -33,38 +33,38 @@
     <button type="button" onclick="addInputFields()">行追加</button>
     <br><br>
     <!-- 動的入力欄のコンテナ2 -->
-    <div id="dynamic-input-container2">
+    <div id="dynamic-input-container2" class="form-group">
         <label for="instructions">手順</label>
         <br>
         {% for step in recipe['step'] %}
         <div class="input-row">
-            <input type="text" name="dynamic_instruction" value="{{ step }}" required>
+            <input type="text" name="dynamic_instruction" value="{{ step }}" class="form-control" required>
         </div>
         {% endfor %}
     </div>
     <button type="button" onclick="addInputFields2()">行追加</button>
     <br><br>
-    <div>
+    <div class="form-group">
         <label for="cook_time">調理時間</label>
         {% if recipe['cook_time'] == {'NULL': true} %}
-        <input type="text" name="cook_time">
+        <input type="text" name="cook_time" class="form-control" class="form-control">
         {% else %}
-        <input type="text" name="cook_time" value="{{ recipe['cook_time'] }}">
+        <input type="text" name="cook_time" value="{{ recipe['cook_time'] }}" class="form-control">
         {% endif %}
     </div>
     <br>
-    <div>
+    <div class="form-group">
         <label for="memo">メモ・コツ</label>
         <br>
         {% if recipe['memo'] == {'NULL': true} %}
-        <textarea id="memo" name="memo" rows="4"></textarea>
+        <textarea id="memo" name="memo" rows="4" class="form-control"></textarea>
         {% else %}
-        <textarea id="memo" name="memo" rows="4">{{ recipe['memo'] }}</textarea>
+        <textarea id="memo" name="memo" rows="4" class="form-control">{{ recipe['memo'] }}</textarea>
         {% endif %}
         <br>
     </div>
     <br>
-    <button id="register" type="submit">編集を完了する</button>
+    <button id="register" type="submit" class="btn btn-secondary>編集を完了する</button>
 </form>
 
 <br><br>
