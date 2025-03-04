@@ -1,22 +1,18 @@
 {% extends "layout.html" %}
 
 {% block content %}
-  <div class="container">
-    <a href="{{ url_for('index') }}" class="btn btn-primary mb-3">戻る</a>
-    <h2 class="text-center">レシピ詳細</h2>
-    <div class="main-container">
-        <div class="title">
-          <h5>料理名：</h5>
-          <div class="title-content"><p>{{ recipe['title'] }}</p></div>
-        </div>
+  <div class="container mt-4">
+    <h2 class="text-center">{{ recipe['title'] }}</h2>
+
+    <div class="row">
         {% if signed_url %}
-        <div>
-          <img src="{{ signed_url }}" alt="S3 Image" style="max-width: 300px;">
+        <div class="col-md-4 text-center">
+          <img src="{{ signed_url }}" alt="S3 Image" class="img-fluid rounded shadow">
         </div>
         {% endif %}
-        <div class="ingredient-quantity">
-          <table>
-          <thead>
+        <div class="col-md-8">
+          <table class="table table-bordered">
+          <thead class="table-light">
             <tr>
               <th scope="col">材料</th>
               <th scope="col">分量</th>
@@ -32,32 +28,51 @@
           </tbody>
           </table>
         </div>
-        <div class="step">
-          <h5>手順：</h5>
-          <div class="step-content">
-            {% for i, step in enumerate(recipe['step'], 1) %}
-            <div><a>{{ i }}. {{ step }}</a></div>
-            {% endfor %}
-          </div>
-        </div>
-        <div class="memo">
-          <h5>メモ・コツ：</h5>
-          <div>
-          {% if recipe['memo'] == {'NULL': true} %}
-            <p></p>
-          {% else %}
-            <p>{{ recipe['memo'] }}</p>
-          {% endif %}
-          </div>
-        <div class="row border p-2 mb-2">
-          <div class="col-sm-3"><h5>最終更新日：</h5>
-          <p>{{ recipe['updated_at'] }}</p>
-          </div>
-        </div>
-        <a href="{{ url_for('upgrade_recipe', recipe_id=recipe['SK']) }}" class="btn btn-primary mb-3 mr-2">編集する</a>
-        <a href="{{ url_for('delete_recipe', recipe_id=recipe['SK']) }}" class="btn btn-danger mb-3" onclick="return confirmDelete(event, this.href);">削除する</a>
+    </div>
+
+    <div class="step mt-4">
+      <h5>手順：</h5>
+      <ul class="list-group">
+        {% for i, step in enumerate(recipe['step'], 1) %}
+        <li class="list-group-item">{{ i }}. {{ step }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="memo mt-4">
+      <h5>メモ・コツ：</h5>
+      <div>
+      {% if recipe['memo'] == {'NULL': true} %}
+        <p class="text-muted">特になし</p>
+      {% else %}
+        <p>{{ recipe['memo'] }}</p>
+      {% endif %}
+      </div>
+    </div>
+
+    <div class="row border p-2 mb-3">
+      <div class="col-sm-3">
+        <h5>最終更新日：</h5>
+        <p>{{ recipe['updated_at'] }}</p>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('upgrade_recipe', recipe_id=recipe['SK']) }}"
+          class="btn"
+          style="background-color: #FACB00; border-color: #FACB00; color: #212529;">
+          編集する
+        </a>
+        <a href="{{ url_for('delete_recipe', recipe_id=recipe['SK']) }}" 
+          class="btn"
+          style="background-color: #E63946; color: #FFFFFF; border: none;" 
+          onclick="return confirmDelete(event, this.href);">
+          削除する
+        </a>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">戻る</a>
     </div>
   </div>
+
 <script>
     function confirmDelete(event, url) {
         if (confirm("本当に削除しますか？")) {

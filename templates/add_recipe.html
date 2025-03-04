@@ -1,54 +1,72 @@
 <script src="static/addInputField.js" defer></script>
 {% extends "layout.html" %}
 {% block content %}
-<h1>新規レシピ</h1>
-<form method="POST" enctype="multipart/form-data">
-    <div>
-        <label for="title">料理名</label>
-        <input type="text" name="title" placeholder="（例）トマトパスタ (1人前)" required>
-    </div>
-    <div>
-    レシピ写真選択  <input type="file" name="file" id="fileInput"><br>
-    </div>
-    <div>
-        <img id="preview" src="" alt="画像プレビュー" style="max-width: 300px; display: none;">
-    </div>
-    <!-- 動的入力欄のコンテナ1 -->
-    <div id="dynamic-input-container">
-        <label for="ingredient">材料 / 分量:</label>
-        <br>
-        <input type="text" name="dynamic_ingredient" placeholder="（例）パスタ" required>
-        <input type="text" name="dynamic_quantity" placeholder="（例）100g" required>
-        <br>
-    </div>
-    <button type="button" onclick="addInputFields()">行追加</button>
-    <br><br>
-    <!-- 動的入力欄のコンテナ2 -->
-    <div id="dynamic-input-container2">
-        <label for="instructions">手順</label>
-        <br>
-        <input type="text" name="dynamic_instruction" placeholder="(例)にんにくを刻み、オイルとにんにくを弱火で炒める" required>
-        <br>
-    </div>
-    <button type="button" onclick="addInputFields2()">行追加</button>
-    <br><br>
-    <div>
-        <label for="cook_time">料理時間</label>
-        <input type="text" name="cook_time" placeholder="(例)30分">
-    </div>
-    <br>
-    <div>
-        <label for="memo">メモ・コツ</label>
-        <br>
-        <textarea id="memo" name="memo" rows="4"></textarea>
-        <br>
-    </div>
-    <br>
-    <button id="register" type="submit">レシピ追加する</button>
-</form>
+<style>
+    .btn-custom {
+        background-color: #FACB00;
+        border-color: #FACB00;
+        color: black;
+    }
+    .btn-custom:hover {
+        background-color: #E0B000;
+        border-color: #E0B000;
+    }
+</style>
+<h1 class="text-center mt-4 mb-4">新規レシピ</h1>
+<div class="container d-flex justify-content-center align-items-center" style="height: 100vh;">
+    <form method="POST" enctype="multipart/form-data" class="shadow-lg p-4 rounded bg-light" style="width: 100%; max-width: 600px;">
+        <div class="mb-3">
+            <label for="title" class="form-label">料理名 (何人前)</label>
+            <input type="text" name="title" class="form-control" placeholder="（例）トマトパスタ (1人前)" required>
+        </div>
 
-<br><br>
-<a href="{{ url_for('index') }}">戻る</a>
+        <div class="mb-3">
+            <label for="fileInput" class="form-label">レシピ写真選択</label>
+            <input type="file" name="file" id="fileInput" class="form-control">
+        </div>
+        
+        <div class="mb-3">
+            <img id="preview" src="" alt="画像プレビュー" style="max-width: 300px; display: none;">
+        </div>
+
+        <!-- 動的入力欄のコンテナ1 -->
+        <div id="dynamic-input-container" class="mb-3">
+            <label for="ingredient" class="form-label">材料 / 分量</label>
+            <div class="input-group mb-2">
+                <input type="text" name="dynamic_ingredient" class="form-control" placeholder="（例）パスタ" required>
+                <input type="text" name="dynamic_quantity" class="form-control" placeholder="（例）100g" required>
+            </div>
+        </div>
+        <button type="button" class="btn btn-secondary" onclick="addInputFields()">行追加</button>
+        <br><br>
+
+        <!-- 動的入力欄のコンテナ2 -->
+        <div id="dynamic-input-container2" class="mb-3">
+            <label for="instructions" class="form-label">手順</label>
+            <input type="text" name="dynamic_instruction" class="form-control" placeholder="(例)にんにくを刻み、オイルとにんにくを弱火で炒める" required>
+        </div>
+        <button type="button" class="btn btn-secondary" onclick="addInputFields2()">行追加</button>
+        <br><br>
+
+        <div class="mb-3">
+            <label for="cook_time" class="form-label">料理時間</label>
+            <input type="text" name="cook_time" class="form-control" placeholder="(例)30分">
+        </div>
+
+        <div class="mb-3">
+            <label for="memo" class="form-label">メモ・コツ</label>
+            <textarea id="memo" name="memo" class="form-control" rows="4"></textarea>
+        </div>
+
+        <div class="text-center">
+            <button id="register" type="submit" class="btn btn-custom">レシピを追加</button>
+        </div>
+    </form>
+
+    <div class="text-center mt-3">
+        <a href="{{ url_for('index') }}" class="btn btn-link">HOME</a>
+    </div>
+</div>
 
 <script>
     document.getElementById("fileInput").addEventListener("change", function(event) {
@@ -64,4 +82,5 @@
         }
     });
 </script>
+
 {% endblock %}

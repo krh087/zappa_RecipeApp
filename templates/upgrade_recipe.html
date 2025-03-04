@@ -1,88 +1,99 @@
 <script src="static/addInputField.js" defer></script>
 {% extends "layout.html" %}
 {% block content %}
-
-<h1>レシピの編集</h1>
-<form method="POST" enctype="multipart/form-data">
-    <div class="form-group">
-        <label for="title">料理名</label>
-        <input type="text" name="title" value="{{ recipe['title'] }}" class="form-control" required>
-    </div>
-    <div class="form-group">
-        {% if signed_url %}
-        <img id="oldImage" src="{{ signed_url }}" alt="S3 Image" style="max-width: 300px;">
-        {% endif %}
-        <img id="newImage" style="max-width: 300px; display: none;">
-    </div>
-    <div class="form-group">
-        レシピ写真選択  <input type="file" id="fileInput" name="file" class="form-control"><br>
-    </div>
-    <!-- 動的入力欄のコンテナ1 -->
-    <div id="dynamic-input-container" class="form-group">
-        <label for="ingredient">材料 / 分量:</label>
-        <br>
-
-    {% for dict_ingredient in recipe['ingredient'] %}
-        <div class="input-row">
-            <input type="text" name="dynamic_ingredient" value="{{ dict_ingredient['name'] }}" class="form-control" required>
-            <input type="text" name="dynamic_quantity" value="{{ dict_ingredient['quantity'] }}" class="form-control" required>
+<style>
+    .btn-custom {
+        background-color: #FACB00;
+        border-color: #FACB00;
+        color: black;
+    }
+    .btn-custom:hover {
+        background-color: #E0B000;
+        border-color: #E0B000;
+    }
+</style>
+<h1 class="text-center mt-4 mb-4">レシピの編集</h1>
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+    <form method="POST" enctype="multipart/form-data" class="shadow-lg p-4 rounded bg-light" style="width: 100%; max-width: 600px;">
+        <div class="mb-3">
+            <label for="title" class="form-label">料理名</label>
+            <input type="text" name="title" value="{{ recipe['title'] }}" class="form-control" required>
         </div>
-    {% endfor %}
 
-    </div>
-    <button type="button" onclick="addInputFields()">行追加</button>
-    <br><br>
-    <!-- 動的入力欄のコンテナ2 -->
-    <div id="dynamic-input-container2" class="form-group">
-        <label for="instructions">手順</label>
-        <br>
-        {% for step in recipe['step'] %}
-        <div class="input-row">
-            <input type="text" name="dynamic_instruction" value="{{ step }}" class="form-control" required>
+        <div class="mb-3">
+            <label for="fileInput" class="form-label">レシピ写真選択</label>
+            <input type="file" id="fileInput" name="file" class="form-control">
         </div>
-        {% endfor %}
-    </div>
-    <button type="button" onclick="addInputFields2()">行追加</button>
-    <br><br>
-    <div class="form-group">
-        <label for="cook_time">調理時間</label>
-        {% if recipe['cook_time'] == {'NULL': true} %}
-        <input type="text" name="cook_time" class="form-control" class="form-control">
-        {% else %}
-        <input type="text" name="cook_time" value="{{ recipe['cook_time'] }}" class="form-control">
-        {% endif %}
-    </div>
-    <br>
-    <div class="form-group">
-        <label for="memo">メモ・コツ</label>
-        <br>
-        {% if recipe['memo'] == {'NULL': true} %}
-        <textarea id="memo" name="memo" rows="4" class="form-control"></textarea>
-        {% else %}
-        <textarea id="memo" name="memo" rows="4" class="form-control">{{ recipe['memo'] }}</textarea>
-        {% endif %}
-        <br>
-    </div>
-    <br>
-    <button id="register" type="submit" class="btn btn-secondary>編集を完了する</button>
-</form>
+        
+        <div class="mb-3 text-center">
+            {% if signed_url %}
+            <img id="oldImage" src="{{ signed_url }}" alt="S3 Image" class="img-fluid" style="max-width: 300px;">
+            {% endif %}
+            <img id="newImage" class="img-fluid" style="max-width: 300px; display: none;">
+        </div>
 
-<br><br>
-<a href="{{ url_for('index') }}">戻る</a>
+        <div id="dynamic-input-container" class="mb-3">
+            <label for="ingredient" class="form-label">材料 / 分量</label>
+            {% for dict_ingredient in recipe['ingredient'] %}
+                <div class="input-group mb-2">
+                    <input type="text" name="dynamic_ingredient" value="{{ dict_ingredient['name'] }}" class="form-control" required>
+                    <input type="text" name="dynamic_quantity" value="{{ dict_ingredient['quantity'] }}" class="form-control" required>
+                    {% if not loop.first %}
+                        <button type="button" class="btn btn-danger btn-sm input-group-text" onclick="removeInputField(this)">削除</button>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        <button type="button" class="btn btn-secondary" onclick="addInputFields()">行追加</button>
+
+        <div id="dynamic-input-container2" class="mb-3">
+            <label for="instructions" class="form-label">手順</label>
+            {% for step in recipe['step'] %}
+                <div class="input-group mb-2">
+                    <input type="text" name="dynamic_instruction" value="{{ step }}" class="form-control" required>
+                    {% if not loop.first %}
+                        <button type="button" class="btn btn-danger btn-sm input-group-text" onclick="removeInputField(this)">削除</button>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        <button type="button" class="btn btn-secondary" onclick="addInputFields2()">行追加</button>
+
+        <div class="mb-3">
+            <label for="cook_time" class="form-label">調理時間</label>
+            <input type="text" name="cook_time" class="form-control" value="{{ recipe['cook_time'] | default('') }}">
+        </div>
+        <div class="mb-3">
+            <label for="memo" class="form-label">メモ・コツ</label>
+            <textarea id="memo" name="memo" rows="4" class="form-control">{{ recipe['memo'] if recipe['memo'] != {'NULL': true} else '' }}</textarea>
+        </div>
+
+        <div class="text-center">
+            <button id="register" type="submit" class="btn btn-custom">編集を完了</button>
+        </div>
+    </form>
+</div>
 
 <script>
-    document.getElementById('fileInput').addEventListener('change', function(event) {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          document.getElementById('newImage').src = e.target.result;
-          document.getElementById('newImage').style.display = 'block';
-          document.getElementById('oldImage').style.display = 'none';
-        };
-        reader.readAsDataURL(file);
-      }
+    function removeInputField(button) {
+        button.parentElement.remove();  // 削除ボタンがある親要素を削除
+    }
+</script>
+<script>
+    document.getElementById("fileInput").addEventListener("change", function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById("newImage").src = e.target.result;
+                document.getElementById("newImage").style.display = "block";
+                if (document.getElementById("oldImage")) {
+                    document.getElementById("oldImage").style.display = "none";
+                }
+            };
+            reader.readAsDataURL(file);
+        }
     });
-  </script>
-{% endblock %}
+</script>
 
+{% endblock %}
