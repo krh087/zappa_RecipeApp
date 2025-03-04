@@ -7,7 +7,9 @@
             "dateutil",
             "botocore",
             "s3transfer",
-            "concurrent"
+            "concurrent",
+            "venv",
+            ".git"
         ],
         "profile_name": "default",
         "project_name": "zappa-webapp-te",

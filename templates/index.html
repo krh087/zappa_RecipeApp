@@ -1,44 +1,48 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<h2>{{ current_user.userName }}さん  こんにちは</h2>
+<h2>{{ current_user.userName }}さん こんにちは</h2>
 
-<a href="{{ url_for('add_recipe') }}" role="button">新規レシピ作成</a>
+<a href="{{ url_for('add_recipe') }}" class="btn btn-primary" role="button">新規レシピ作成</a>
 <div class="container mt-4">
     <h2>レシピ一覧</h2>
-    <table class="table table-striped">
-        <thead>
-            <tr>
-              <th scope="col">#</th>
-              <th scope="col">画像</th>
-              <th scope="col">料理名</th>
-              <th scope="col">調理時間</th>
-              <th scope="col">最終更新時間</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for i, recipe in enumerate(sort_recipes, 1) %}
-            <tr>
-              <th scope="row">{{ i }}</th>
-              <td>
-                <img src="{{ recipe['recipe_img_path'] if recipe['recipe_img_path'] != None else noImage_pre_url }}"
-                     class = "img-thumbnail"
-                     alt="レシピ画像"
-                     style="width: 100px; height: 100px; object-fit: cover;">
-              </td>
-              <td><a href="{{ url_for('recipe_detail', recipe_id=recipe['SK']) }}">{{ recipe['title'] }}</a></td>
-              {% if recipe['cook_time'] == {'NULL': true} %}
-              <td> ---- </td>
-              {% else %}
-              <td>{{ recipe['cook_time'] }}</td>
-              {% endif %}
-              <td>{{ recipe['updated_at'] }}</td>
-            </tr>
-            {% endfor %}
-    </table>
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">画像</th>
+                    <th scope="col">料理名</th>
+                    <th scope="col">調理時間</th>
+                    <th scope="col">最終更新時間</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for i, recipe in enumerate(sort_recipes, 1) %}
+                <tr>
+                    <th scope="row">{{ i }}</th>
+                    <td>
+                        <img src="{{ recipe['recipe_img_path'] if recipe['recipe_img_path'] != None else noImage_pre_url }}"
+                             class="img-thumbnail"
+                             alt="レシピ画像"
+                             style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%;">
+                    </td>
+                    <td><a href="{{ url_for('recipe_detail', recipe_id=recipe['SK']) }}" class="text-decoration-none">{{ recipe['title'] }}</a></td>
+                    {% if recipe['cook_time'] == {'NULL': true} %}
+                    <td> ---- </td>
+                    {% else %}
+                    <td>{{ recipe['cook_time'] }}</td>
+                    {% endif %}
+                    <td>{{ recipe['updated_at'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <br><br>
-<a href="{{ url_for('logout') }}" role="button">ログアウト</a>
-<br><a href="{{ url_for('gemini_generate_recipe') }}" role="button">gemini</a>
+<a href="{{ url_for('logout') }}" class="btn btn-outline-secondary" role="button">ログアウト</a>
+<br>
+<a href="{{ url_for('gemini_generate_recipe') }}" class="btn btn-outline-info" role="button">Gemini</a>
 {% endblock %}

@@ -1,35 +1,42 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<h1>アカウントを作成する</h1>
+<div class="d-flex align-items-center justify-content-center" style="height: 100vh;">
+    <div class="card p-4 shadow" style="max-width: 600px; width: 100%;">
+        <h1 class="text-center">アカウントを作成する</h1>
 
-    <!-- フラッシュメッセージ表示 -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <ul style="list-style-type: none;">
-                {% for category, message in messages %}
-                    <li class="alert alert-{{ category }}">{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-    {% endwith %}
+        <!-- フラッシュメッセージ表示 -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul class="list-unstyled">
+                    {% for category, message in messages %}
+                        <li class="alert alert-{{ category }}">{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
 
         <form method="post" action="{{ url_for('signup') }}">
-            <div class="form-group">
-                <label for="username">ユーザー名</label>
-                <input type="text" id="username" name="username" class="form-control" placeholder="ユーザー名を入力" required>
+            <div class="mb-3">
+                <label for="username" class="form-label">ユーザー名</label>
+                <input type="email" id="username" name="username" class="form-control" placeholder="ユーザー名を入力" required>
             </div>
-            <div class="form-group">
-                <label for="email">E-mail</label>
-                <input type="text" id="email" name="email" class="form-control" placeholder="例 : xxx@example.com" required>
+            <div class="mb-3">
+                <label for="email" class="form-label">E-mail</label>
+                <input type="email" id="email" name="email" class="form-control" placeholder="例 : xxx@example.com" required>
             </div>
-            <div class="form-group">
-                <label for="password">パスワード</label>
-                <input type="text" id="password" name="password" class="form-control" placeholder="パスワードを入力" required>
+            <div class="mb-3">
+                <label for="password"  class="form-label">パスワード</label>
+                <input type="password" id="password" name="password" class="form-control" placeholder="パスワードを入力" required>
             </div>
             <div class="d-flex justify-content-center">
-                <button type="submit" class="btn btn-secondary">登録</button>
+                <button type="submit" class="btn btn-secondary w-100">登録</button>
             </div>
         </form>
-        <a href="{{ url_for('login') }}" role="button">ログインに戻る</a>
+
+        <div class="text-center mt-3">
+        <a href="{{ url_for('login') }}" class="btn btn-link text-primary hover-shadow">ログインに戻る</a>
+        </div>
+    </div>
+</div>
 {% endblock %}
