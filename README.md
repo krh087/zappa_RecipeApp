@@ -1,4 +1,3 @@
-# zappa_RecipeApp
 
 # レシピアプリ
 
@@ -6,8 +5,9 @@
 
 ## 主な機能
 - **レシピ登録**: レシピ名、写真、食材、調理工程を入力して保存。
-- **他ユーザーのレシピ編集**: 自分の登録したレシピを追加、閲覧、更新、削除可能。
-- **レシピの自動生成**: レシピ名を入力することで、Google Geminiがレシピを自動生成。
+- **レシピ編集**: 自分の登録したレシピを追加、閲覧、更新、削除可能。
+- **ユーザー認証**: メールとパスワードを用いてユーザー認証。
+- **レシピ自動生成**: レシピ名を入力することで、Google Geminiがレシピを自動生成。
 
 ## 使用技術
 | カテゴリー       | 使用技術                       |
@@ -30,7 +30,7 @@ zappa_RecipeApp
 │ ├──gemini_generate_recipe.html
 │ └──gemini_add_recipe.html
 │──static
-│ └──addInoutField.js
+│ └──addInputField.js
 ├──config.py
 ├──venv
 ├──requirements.txt
@@ -52,8 +52,8 @@ zappa_RecipeApp
 | テーブル名  | パーティションキー (PK) | ソートキー (SK) | データの種類 | 説明 |
 |------------|------------------|--------------------|-------------|------|
 | `UserRecipe` | `user#<user_id>` | `PROFILE`          | ユーザープロフィール | ユーザー情報（名前、メール、パスワード）を格納 |
-| `UserRecipe` | `user#<user_id>` | `RECIPE#<recipe_id>` | レシピ情報 | ユーザーが投稿したレシピ情報（料理名、手順、分量、画像パス） |
-| `UserRecipe` | `user#<user_id>` | `Counter`          | レシピカウント | ユーザーの投稿レシピ数を記録 |
+| `UserRecipe` | `user#<user_id>` | `RECIPE#<recipe_id>` | レシピ情報 | ユーザーが投稿したレシピ情報（料理名、手順、分量、画像パス等）を格納 |
+| `UserRecipe` | `user#<user_id>` | `Counter`          | レシピカウント | ユーザーの投稿レシピ数を記録 (<recipe_id>のオートインクリメント用途) |
 
 
 
@@ -78,7 +78,7 @@ zappa_RecipeApp
   "name": "John Doe",
   "email": "john@example.com"
 }
-
+```
 
 ## スクリーンショット
 - トップ画面  

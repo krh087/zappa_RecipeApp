@@ -1,15 +1,29 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<h1>~レシピ名入力でレシピ自動生成~</h1>
-<h3>レシピ生成に少し時間がかかります</h3>
+<style>
+    .btn-custom {
+        background-color: #FACB00;
+        border-color: #FACB00;
+        color: black;
+    }
+    .btn-custom:hover {
+        background-color: #E0B000;
+        border-color: #E0B000;
+    }
+</style>
+<div class="container mt-5">
+    <h1 class="mb-4">~レシピ名入力でレシピ自動生成~</h1>
+    <h3 class="mb-4 text-muted">レシピ生成に少し時間がかかります</h3>
 
-        <form method="post" action="{{ url_for('gemini_generate_recipe') }}">
-            <div>
-                <label for="title">レシピ名</label>
-                <input type="text" id="title" name="title" placeholder="レシピ名を入力" required>
+    <form method="post" action="{{ url_for('gemini_generate_recipe') }}">
+        <div class="mb-3">
+            <input type="text" class="form-control" id="title" name="title" placeholder="レシピ名を入力" required>
+        </div>
+            <div class="text-center">
+                <button id="register" type="submit" class="btn btn-custom">レシピを生成</button>
             </div>
-            <button type="submit">送信</button>
-            <a href="{{ url_for('login') }}" role="button">戻る</a>
-        </form>
+        </div>
+    </form>
+</div>
 {% endblock %}
