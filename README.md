@@ -76,6 +76,35 @@ zappa_RecipeApp
 }
 ```
 
+## AWS SystemsManager Parameter Store
+### パラメータストアの構成
+- /zappa_RecipeApp/dev/AppSecret_key
+- /zappa_RecipeApp/dev/Gemini_api_key
+
+### lambda パラメータストアアクセス用ポリシー
+```
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Effect": "Allow",
+			"Action": [
+				"ssm:GetParameter",
+				"ssm:GetParameters",
+				"ssm:GetParametersByPath"
+			],
+			"Resource": "arn:aws:ssm:{YOUR_REGION}:{YOUR_ACCOUNT_ID}:parameter/zappa_RecipeApp/dev/*"
+		},
+		{
+			"Effect": "Allow",
+			"Action": "kms:Decrypt",
+			"Resource": "arn:aws:kms:{YOUR_REGION}:{YOUR_ACCOUNT_ID}:key/{YOUR_KMS_KEY_ID}"
+		}
+	]
+}
+```
+
+
 ## スクリーンショット
 - トップ画面  
 ![トップ画面](path/to/image)
@@ -85,7 +114,9 @@ zappa_RecipeApp
 
 ## 今後の予定
 - メール送信(SES,EventBridge) : ユーザーが設定した時間にプッシュ通知(献立などに)
+- S3FullAccess →  「必要最小限の権限」IAMロールに変更(インラインポリシー作成)
 - カテゴリー（例：和食、洋食、デザートなど）を追加 +ナビゲーションバーにカテゴリーを追加し、カテゴリーで検索
 - レシピ個人的評価(Rating: 1.0 ~ 5.0, 0.1毎) : おいしさ、作りやすさ、食材の集めやすさなど
 ---
+
 
