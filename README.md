@@ -12,8 +12,8 @@
 ## 使用技術
 | カテゴリー       | 使用技術                       |
 |------------------|--------------------------------|
-| フロントエンド   | HTML, CSS, JavaScript          |
-| バックエンド     | flask, zappa, boto3, GeminiAPI,|
+| フロントエンド   | HTML, CSS, JavaScript, bootstrap5 |
+| バックエンド     | flask (python), zappa, boto3, GeminiAPI,|
 | インフラ         | AWS (lambda, APIGateway, S3, DynamoDB, SSM)   |
 
 ## ディレクトリ構成
@@ -65,12 +65,8 @@ zappa_RecipeApp
 | UserEmailIndex | `email` (string)  | -               | メールアドレスでユーザーを検索 |
 | UserEmailIndex | `email` (string)  | -               | メールアドレスでユーザーを検索 |
 
-### 3. アクセス方法
-- `boto3` を使用してPython（Flask API）からデータを操作。
-- API Gateway + Lambda を経由してクライアントからデータ取得。
-- DynamoDB SDK を利用して直接データを取得可能。
 
-### 4. データの例
+### 3. データの例
 #### Users テーブルのサンプルデータ
 ```json
 {
@@ -88,8 +84,8 @@ zappa_RecipeApp
 ![レシピ詳細](path/to/image)
 
 ## 今後の予定
-- レシピのお気に入り機能追加。
-- コメント機能の実装。
-
+- メール送信(SES,EventBridge) : ユーザーが設定した時間にプッシュ通知(献立などに)
+- カテゴリー（例：和食、洋食、デザートなど）を追加 +ナビゲーションバーにカテゴリーを追加し、カテゴリーで検索
+- レシピ個人的評価(Rating: 1.0 ~ 5.0, 0.1毎) : おいしさ、作りやすさ、食材の集めやすさなど
 ---
 

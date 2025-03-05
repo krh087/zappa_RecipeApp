@@ -70,8 +70,16 @@ app = Flask(__name__)
 app.config.from_object(config)
 
 # Parameter Store から取得
-app.secret_key = get_systems_manager_param("/zappa_RecipeApp/dev/AppSecret_key")
-GEMINI_API_KEY = get_systems_manager_param("/zappa_RecipeApp/dev/Gemini_api_key")
+#app.secret_key = get_systems_manager_param("/zappa_RecipeApp/dev/AppSecret_key")
+#GEMINI_API_KEY = get_systems_manager_param("/zappa_RecipeApp/dev/Gemini_api_key")
+
+# Parameter Storeから値を取得して環境変数として設定
+os.environ["SECRET_KEY"] = get_systems_manager_param("/zappa_RecipeApp/dev/AppSecret_key")
+os.environ["GEMINI_API_KEY"] = get_systems_manager_param("/zappa_RecipeApp/dev/Gemini_api_key")
+
+# Flask設定に環境変数を適用
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+app.config["GEMINI_API_KEY"] = os.getenv("GEMINI_API_KEY")
 
 # DynamoDB設定
 DynamoDB_REGION = "ap-northeast-1"
@@ -245,12 +253,12 @@ def allowed_file(filename):
     )
 
 
-def format_success_message():
+def format_success_message(action: str):
     return Markup(f"""
     <div class="container mt-5">
         <div class="alert alert-success" role="alert">
             <h4 class="alert-heading">成功！</h4>
-            <p>レシピの追加が完了しました。</p>
+            <p>レシピの{action}が完了しました。</p>
             <hr>
             <p class="mb-0">
                 <a href="{url_for('index')}" class="btn btn-primary">HOMEに戻る</a>
@@ -272,8 +280,7 @@ def add_recipe():
             recipe_data = extract_recipe_data()
             # データ保存
             save_recipe_to_db(recipe_data, s3_filename)
-            #return f"レシピの追加完了しました！ <a href='{url_for('index')}'>HOMEに戻る</a>"
-            return format_success_message()
+            return format_success_message("追加")
         except Exception as e:
             print(f"エラーが発生しました: {str(e)}")
             return render_template("add_recipe.html")
@@ -472,7 +479,7 @@ def delete_recipe():
     # S3から画像削除
     if recipe_img_path not in (None, {"NULL": True}):
         s3.delete_object(Bucket=S3_BUCKET, Key=recipe_img_path)
-    return f"レシピの削除完了しました！ <a href='{url_for('index')}'>HOMEに戻る</a>"
+    return format_success_message("削除")
 
 
 def get_gemini_recipe(dish_name):
@@ -523,7 +530,7 @@ def gemini_generate_recipe():
     if request.method == "POST":
         dish_name = request.form.get("title")
         # APIキーを設定
-        genai.configure(api_key=GEMINI_API_KEY)
+        genai.configure(api_key=os.environ["GEMINI_API_KEY"])
         gemini_recipe = get_gemini_recipe(dish_name)
         print(gemini_recipe)
         # return render_template('gemini_add_recipe.html', dish_name=dish_name, gemini_recipe=gemini_recipe)
@@ -592,8 +599,7 @@ def gemini_add_recipe():
             recipe_data = extract_recipe_data()
             # データ保存
             save_recipe_to_db(recipe_data, s3_filename)
-            #return f"レシピの追加完了しました！ <a href='{url_for('index')}'>HOMEに戻る</a>"
-            return format_success_message()
+            return format_success_message("追加")
         except Exception as e:
             print(f"エラーが発生しました: {str(e)}")
             return redirect(url_for("gemini_add_recipe"))
