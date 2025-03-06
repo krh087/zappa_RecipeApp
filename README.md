@@ -14,7 +14,7 @@
 |------------------|--------------------------------|
 | フロントエンド   | HTML, CSS, JavaScript, bootstrap5 |
 | バックエンド     | flask (python), zappa, boto3, GeminiAPI,|
-| インフラ         | AWS (lambda, APIGateway, S3, DynamoDB, SSM)   |
+| インフラ         | AWS (lambda, APIGateway, S3, DynamoDB, SSM Paramater Store)   |
 
 ## ディレクトリ構成
 <pre>
@@ -40,7 +40,7 @@ zappa_RecipeApp
 
 ## AWSインフラ構成
 
-画像貼り付け(draw.io)
+![Image](https://github.com/user-attachments/assets/9f3aad72-0872-4130-bb53-cc86c46bf2a4)
 
 
 ## DynamoDB の構成
@@ -58,21 +58,49 @@ zappa_RecipeApp
 
 
 ### 2. グローバルセカンダリインデックス (GSI)
-一部の検索を高速化するために、以下のGSIを設定しています。
+PK,SK以外で検索を可能にするために、以下のGSIを設定しています。
 
 | GSI名           | パーティションキー (GSI PK) | ソートキー (GSI SK) | 用途 |
 |---------------|-------------------|-----------------|------|
-| UserEmailIndex | `email` (string)  | -               | メールアドレスでユーザーを検索 |
-| UserEmailIndex | `email` (string)  | -               | メールアドレスでユーザーを検索 |
+| email-index | `email` (string)  | -             | メールアドレスでユーザー認証 |
+| userId-updated_at-index | `userId` (string)  | `updated_at` (string)  | レシピ更新順に並び変え |
 
 
 ### 3. データの例
-#### Users テーブルのサンプルデータ
+#### UserRecipe テーブルのサンプルデータ
 ```json
+SK=PROFILE
 {
-  "user_id": "12345",
-  "name": "John Doe",
-  "email": "john@example.com"
+  "userId": "USER#user244959578138",
+  "SK": "PROFILE",
+  "userName": "John",
+  "email": "john@example.com",
+  "pass": "expass",
+  "created_at": "PROFILE#2025-02-28T03:43:22.118225",
+  "updated_at": "PROFILE#2025-02-28T03:43:22.118225",
+}
+```
+```json
+SK=RECIPE#<recipe_id>
+{
+  "userId": "USER#user244959578138",
+  "SK": "RECIPE#recipe11",
+  "recipe_img_path": "recipe/USER#user244959578138/hamburgersteak.png",
+  "title": "ハンバーグ（2人分）",
+  "ingredient": '[{"name":"ミートミンチ", "quantity":"170g"},{"name":"玉ねぎ ","quantity":"1／2個"}]',
+  "step": '[ "冷凍のソミートを自然解凍" , "玉ねぎをみじん切りし、油をひいたフライパンで炒める" ]',
+  "cook_time":"20分",
+  "memo": "玉ねぎを飴色になるまで炒める",
+  "created_at": "RECIPE#2025-02-28T03:43:22.118225",
+  "updated_at": "RECIPE#2025-02-28T03:43:22.118225",
+}
+```
+```json
+SK=Counter
+{
+  "userId": "USER#user244959578138",
+  "SK": "counter",
+  "recipe_counter": 13,
 }
 ```
 
@@ -103,9 +131,55 @@ zappa_RecipeApp
 	]
 }
 ```
+## S3の構成
+ ### 許可する拡張子
+{'png', 'jpg', 'jpeg', 'gif'}
+<pre>
+/
+├──Noimage.png
+├──recipe
+│  └──userId
+│  		├──hamburgersteak.png.png
+│  		└──pasta.jpeg
+│ └──userId
+│     ├──
+│  	...
+</pre>
 
-
-## スクリーンショット
+## Gemini API
+### レシピ生成関数
+```
+def get_gemini_recipe(dish_name):
+    prompt = f"""
+        {dish_name} のレシピを JSON 形式で日本語で出力してください。
+        必ず以下のフォーマットに従ってください。
+        出力には、前後にコードブロック (```json) を付けずに、直接 JSON 形式で出力してください。
+        ```
+        {{
+        "材料": [
+            {{"name": "玉ねぎ", "quantity": "大1個"}},
+            {{"name": "にんじん", "quantity": "1本"}},
+            {{"name": "トマト缶（カットトマト）", "quantity": "400g"}}
+        ],
+        "手順": [
+            "玉ねぎをみじん切りにする。",
+            "鍋に油をひき、玉ねぎを炒める。",
+            "カレー粉を加えて香りを出す。"
+        ],
+        "調理時間": "40分",
+        "調理ポイント": [
+            "スパイスは焦がさないように弱火で炒める。",
+            "トマトを加えると酸味が増して美味しくなる。"
+        ],
+        "何人前": "4人前"
+        }}
+        ```
+        """
+ 
+model = genai.GenerativeModel("gemini-1.5-pro")
+response = model.generate_content(prompt)
+```
+## 状態遷移図
 - トップ画面  
 ![トップ画面](path/to/image)
 
