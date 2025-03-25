@@ -181,30 +181,29 @@ model = genai.GenerativeModel("gemini-1.5-pro")
 response = model.generate_content(prompt)
 ```
 ## 画面イメージ
-- ログイン画面
-![ログイン画面]![Image](https://github.com/user-attachments/assets/0cf1b171-978e-4d7a-8295-3241d3328c5c)
+### ログイン画面
+![Image](https://github.com/user-attachments/assets/0cf1b171-978e-4d7a-8295-3241d3328c5c)
 
--アカウント作成画面
-![アカウント作成画面]![Image](https://github.com/user-attachments/assets/0cf1b171-978e-4d7a-8295-3241d3328c5c)
+### アカウント作成画面
+![Image](https://github.com/user-attachments/assets/0cf1b171-978e-4d7a-8295-3241d3328c5c)
 
+### ホーム画面 
+![Image](https://github.com/user-attachments/assets/b1325a3f-c143-4906-812e-3eb211c145cf)
 
-- ホーム画面 
-![ホーム画面]![Image](https://github.com/user-attachments/assets/b1325a3f-c143-4906-812e-3eb211c145cf)
+### レシピ追加画面
+![Image](https://github.com/user-attachments/assets/f9761535-ff55-4382-a4fd-cb120e4dbafc)
 
-- レシピ追加画面
-![レシピ追加画面]![Image](https://github.com/user-attachments/assets/f9761535-ff55-4382-a4fd-cb120e4dbafc)
+### レシピ詳細画面
+![Image](https://github.com/user-attachments/assets/c36af4bf-a0ec-4807-bd97-b7fc0cb6e738)
 
-- レシピ詳細画面 
-![レシピ詳細]![Image](https://github.com/user-attachments/assets/c36af4bf-a0ec-4807-bd97-b7fc0cb6e738)
+### レシピ編集画面
+![Image](https://github.com/user-attachments/assets/7974d58a-c0c8-4c19-841f-902373ed315e)
 
-- レシピ編集画面
-![レシピ編集]![Image](https://github.com/user-attachments/assets/7974d58a-c0c8-4c19-841f-902373ed315e)
+### レシピ自動生成画面
+![Image](https://github.com/user-attachments/assets/328d6210-ee19-4197-a538-bdead36320c6)
 
-- レシピ自動生成画面
-![レシピ自動生成画面]![Image](https://github.com/user-attachments/assets/328d6210-ee19-4197-a538-bdead36320c6)
-
-- 自動生成レシピの登録画面
-![自動生成レシピの登録画面]
+### 自動生成レシピの登録画面
+![Image](https://github.com/user-attachments/assets/66815747-4061-4270-807b-e1ee59021505)
 
 
 ## 今後の予定
