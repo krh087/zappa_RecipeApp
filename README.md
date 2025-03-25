@@ -180,7 +180,7 @@ def get_gemini_recipe(dish_name):
 model = genai.GenerativeModel("gemini-1.5-pro")
 response = model.generate_content(prompt)
 ```
-## 画面遷移図
+## 画面イメージ
 - ログイン画面
 ![ログイン画面]![Image](https://github.com/user-attachments/assets/0cf1b171-978e-4d7a-8295-3241d3328c5c)
 
