@@ -185,7 +185,7 @@ response = model.generate_content(prompt)
 ![Image](https://github.com/user-attachments/assets/0cf1b171-978e-4d7a-8295-3241d3328c5c)
 
 ### アカウント作成画面
-![Image](https://github.com/user-attachments/assets/0cf1b171-978e-4d7a-8295-3241d3328c5c)
+![Image](https://github.com/user-attachments/assets/aa6ca4b3-a45e-48b4-8932-784e2275ffde)
 
 ### ホーム画面 
 ![Image](https://github.com/user-attachments/assets/b1325a3f-c143-4906-812e-3eb211c145cf)
