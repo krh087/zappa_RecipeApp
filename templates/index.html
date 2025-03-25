@@ -20,10 +20,12 @@
                 <tr>
                     <th scope="row">{{ i }}</th>
                     <td>
+                        <div class="image-container" style="width: 100px; aspect-ratio: 1 / 1; overflow: hidden; position: relative;">
                           <img src="{{ recipe['recipe_img_path'] if recipe['recipe_img_path'] != None else noImage_pre_url }}"
                               class="img-thumbnail"
                               alt="レシピ画像"
-                              style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%; border: 3px solid #FACB00;">
+                              style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; border-radius: 50%; border: 3px solid #FACB00;">
+                        </div>
                     </td>
                     <td><a href="{{ url_for('recipe_detail', recipe_id=recipe['SK']) }}" class="text-decoration-none" style="color: #212529">{{ recipe['title'] }}</a></td>
                     {% if recipe['cook_time'] == {'NULL': true} %}
