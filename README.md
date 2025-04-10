@@ -109,7 +109,7 @@ SK=Counter
 ### パラメータストアの構成
 - /zappa_RecipeApp/dev/AppSecret_key
 - /zappa_RecipeApp/dev/Gemini_api_key
-
+- /zappa_RecipeApp/dev/s3_bucket
 ### lambda パラメータストアアクセス用ポリシー
 ```
 {
