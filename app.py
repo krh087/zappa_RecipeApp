@@ -80,6 +80,7 @@ os.environ["GEMINI_API_KEY"] = get_systems_manager_param("/zappa_RecipeApp/dev/G
 # Flask設定に環境変数を適用
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 app.config["GEMINI_API_KEY"] = os.getenv("GEMINI_API_KEY")
+S3_BUCKET = get_systems_manager_param("/zappa_RecipeApp/dev/s3_bucket")
 
 # DynamoDB設定
 DynamoDB_REGION = "ap-northeast-1"
@@ -88,7 +89,6 @@ dynamodb = boto3.resource("dynamodb", region_name=DynamoDB_REGION)
 table = dynamodb.Table(DynamoDB_TABLE)
 
 # S3クライアントの初期化
-S3_BUCKET = "myawsbucketrecipeimg2"
 S3_REGION = "ap-northeast-1"
 s3 = boto3.client("s3")
 
